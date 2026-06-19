@@ -1,0 +1,29 @@
+{
+  "name": "platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "dev": "bash scripts/dev.sh",
+    "dev:api": "npm run build -w @platform/api && npm run start:dev -w @platform/api",
+    "dev:web": "npm run dev -w @platform/web",
+    "build": "npm run build -w @platform/api && npm run build -w @platform/web",
+    "build:api": "npm run build -w @platform/api",
+    "build:web": "npm run build -w @platform/web",
+    "db:generate": "npm run db:generate -w @platform/api",
+    "db:push": "npm run db:push -w @platform/api",
+    "db:seed": "npm run db:seed -w @platform/api",
+    "db:migrate": "npm run db:migrate -w @platform/api",
+    "db:studio": "npm run db:studio -w @platform/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1"
+  }
+}

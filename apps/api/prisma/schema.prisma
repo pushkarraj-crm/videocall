@@ -1,0 +1,1024 @@
+// Social Video Communication Platform — PostgreSQL Schema
+// Phase 1: Production-ready database design
+// Coin precision: 1 coin = 100 coin_units
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum UserStatus {
+  active
+  suspended
+  banned
+  deleted
+
+  @@map("user_status_enum")
+}
+
+enum Gender {
+  male
+  female
+  other
+  prefer_not_to_say
+
+  @@map("gender_enum")
+}
+
+enum Role {
+  user
+  host
+  moderator
+  admin
+  super_admin
+  grievance_officer
+  support
+
+  @@map("role_enum")
+}
+
+enum ConsentDocumentType {
+  terms
+  privacy
+  community_guidelines
+  host_agreement
+  pre_call
+  age_declaration
+
+  @@map("consent_document_enum")
+}
+
+enum WalletTransactionType {
+  recharge
+  call_charge
+  referral_bonus
+  host_earning
+  withdrawal
+  refund
+  admin_adjustment
+  payout_reversal
+
+  @@map("wallet_tx_type_enum")
+}
+
+enum PaymentStatus {
+  created
+  authorized
+  paid
+  failed
+  refunded
+
+  @@map("payment_status_enum")
+}
+
+enum ReferralStatus {
+  pending
+  qualified
+  rewarded
+  rejected
+
+  @@map("referral_status_enum")
+}
+
+enum HostApplicationStatus {
+  pending
+  kyc_submitted
+  under_review
+  approved
+  rejected
+
+  @@map("host_app_status_enum")
+}
+
+enum KycVerificationStatus {
+  pending
+  in_review
+  verified
+  failed
+  expired
+
+  @@map("kyc_status_enum")
+}
+
+enum HostEarningStatus {
+  held
+  available
+  paid
+  reversed
+
+  @@map("earning_status_enum")
+}
+
+enum WithdrawalStatus {
+  requested
+  approved
+  processing
+  completed
+  rejected
+  failed
+
+  @@map("withdrawal_status_enum")
+}
+
+enum SwipeAction {
+  like
+  pass
+
+  @@map("swipe_action_enum")
+}
+
+enum CallStatus {
+  initiated
+  ringing
+  active
+  ended
+  missed
+  rejected
+  cancelled
+
+  @@map("call_status_enum")
+}
+
+enum CallEndReason {
+  user_ended
+  balance_zero
+  timeout
+  reported
+  network_error
+  admin_terminated
+
+  @@map("call_end_reason_enum")
+}
+
+enum MessageModerationStatus {
+  pending
+  approved
+  flagged
+  removed
+
+  @@map("msg_moderation_enum")
+}
+
+enum ReportCategory {
+  harassment
+  spam
+  inappropriate_content
+  fraud
+  minor_safety
+  impersonation
+  other
+
+  @@map("report_category_enum")
+}
+
+enum ReportStatus {
+  open
+  reviewing
+  resolved
+  dismissed
+  escalated
+
+  @@map("report_status_enum")
+}
+
+enum ReportSeverity {
+  low
+  medium
+  high
+  critical
+
+  @@map("report_severity_enum")
+}
+
+enum ResolutionAction {
+  warning
+  content_removed
+  temp_suspend
+  permanent_ban
+  payout_hold
+  dismissed
+
+  @@map("resolution_action_enum")
+}
+
+enum AppealStatus {
+  none
+  pending
+  approved
+  rejected
+
+  @@map("appeal_status_enum")
+}
+
+enum ModerationTargetType {
+  user_profile
+  avatar
+  bio
+  message
+  host_application
+
+  @@map("moderation_target_enum")
+}
+
+enum ModerationQueueStatus {
+  pending
+  in_review
+  approved
+  rejected
+  escalated
+
+  @@map("moderation_status_enum")
+}
+
+enum GrievanceStatus {
+  received
+  acknowledged
+  resolved
+
+  @@map("grievance_status_enum")
+}
+
+enum DevicePlatform {
+  web
+  android
+  ios
+
+  @@map("device_platform_enum")
+}
+
+// =============================================================================
+// IDENTITY & COMPLIANCE
+// =============================================================================
+
+model User {
+  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firebaseUid       String     @unique @map("firebase_uid") @db.VarChar(128)
+  phone             String?    @db.VarChar(15)
+  email             String?    @db.VarChar(255)
+  displayName       String     @map("display_name") @db.VarChar(50)
+  avatarUrl         String?    @map("avatar_url")
+  bio               String?    @db.VarChar(500)
+  dateOfBirth       DateTime   @map("date_of_birth") @db.Date
+  gender            Gender?
+  primaryLanguage   String     @default("en") @map("primary_language") @db.VarChar(10)
+  referralCode      String     @unique @map("referral_code") @db.VarChar(20)
+  referredById      String?    @map("referred_by_id") @db.Uuid
+  abuseScore        Int        @default(0) @map("abuse_score")
+  status            UserStatus @default(active)
+  freeCallsUsed     Int        @default(0) @map("free_calls_used") @db.SmallInt
+  deviceFingerprint String?    @map("device_fingerprint") @db.VarChar(64)
+  lastSeenAt        DateTime?  @map("last_seen_at") @db.Timestamptz(6)
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?  @map("deleted_at") @db.Timestamptz(6)
+
+  referredBy User?  @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals  User[] @relation("UserReferrals")
+
+  roles                    UserRole[]
+  rolesGranted             UserRole[]            @relation("RoleGranter")
+  consents                 UserConsent[]
+  wallet                   Wallet?
+  walletTransactions       WalletTransaction[]
+  referralsMade            Referral[]            @relation("Referrer")
+  referralReceived         Referral?             @relation("Referred")
+  hostApplication          HostApplication?
+  hostKycRecords           HostKyc[]
+  hostProfile              HostProfile?
+  hostBankAccounts         HostBankAccount[]
+  hostEarnings             HostEarning[]
+  withdrawals              Withdrawal[]
+  withdrawalsApproved      Withdrawal[]          @relation("WithdrawalApprover")
+  callsAsCaller            Call[]                @relation("Caller")
+  callsAsCallee              Call[]                @relation("Callee")
+  callConsents             CallConsent[]
+  swipesMade               Swipe[]               @relation("Swiper")
+  swipesReceived           Swipe[]               @relation("SwipeTarget")
+  matchesAsA               Match[]               @relation("MatchUserA")
+  matchesAsB               Match[]               @relation("MatchUserB")
+  conversationsAsA         Conversation[]        @relation("ConversationA")
+  conversationsAsB         Conversation[]        @relation("ConversationB")
+  messagesSent             Message[]
+  blocksMade               Block[]               @relation("Blocker")
+  blocksReceived           Block[]               @relation("Blocked")
+  reportsMade              Report[]              @relation("Reporter")
+  reportsReceived          Report[]              @relation("Reported")
+  reportsAssigned          Report[]              @relation("ReportAssignee")
+  reportsResolved          Report[]              @relation("ReportResolver")
+  abuseSignals             AbuseSignal[]
+  suspensions              AccountSuspension[]
+  suspensionsIssued        AccountSuspension[]   @relation("SuspensionIssuer")
+  suspensionsLifted        AccountSuspension[]   @relation("SuspensionLifter")
+  moderationItems          ModerationQueue[]     @relation("ModerationSubject")
+  moderationReviews        ModerationQueue[]     @relation("ModerationReviewer")
+  auditLogs                AuditLog[]
+  configUpdates            PlatformConfig[]
+  grievanceTickets         GrievanceTicket[]
+  payments                 Payment[]
+  deviceTokens             DeviceToken[]
+  hostApplicationsReviewed HostApplication[]     @relation("HostApplicationReviewer")
+
+  @@index([status, deletedAt])
+  @@index([abuseScore(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("users")
+}
+
+model UserRole {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  role        Role
+  grantedById String?   @map("granted_by_id") @db.Uuid
+  grantedAt   DateTime  @default(now()) @map("granted_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy User? @relation("RoleGranter", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, role])
+  @@index([userId])
+  @@index([role])
+  @@map("user_roles")
+}
+
+model LegalDocument {
+  id           String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentType ConsentDocumentType @map("document_type")
+  version      String              @db.VarChar(20)
+  title        String              @db.VarChar(200)
+  contentUrl   String              @map("content_url")
+  isActive     Boolean             @default(false) @map("is_active")
+  publishedAt  DateTime?           @map("published_at") @db.Timestamptz(6)
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  consents UserConsent[]
+
+  @@unique([documentType, version])
+  @@index([documentType, isActive])
+  @@map("legal_documents")
+}
+
+model UserConsent {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String              @map("user_id") @db.Uuid
+  documentType    ConsentDocumentType @map("document_type")
+  documentVersion String              @map("document_version") @db.VarChar(20)
+  legalDocumentId String?             @map("legal_document_id") @db.Uuid
+  ipAddress       String?             @map("ip_address") @db.Inet
+  userAgent       String?             @map("user_agent")
+  consentedAt     DateTime            @default(now()) @map("consented_at") @db.Timestamptz(6)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  legalDocument LegalDocument? @relation(fields: [legalDocumentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, documentType])
+  @@index([consentedAt(sort: Desc)])
+  @@map("user_consents")
+}
+
+// =============================================================================
+// COIN WALLET
+// =============================================================================
+
+model Wallet {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String   @unique @map("user_id") @db.Uuid
+  balanceUnits          BigInt   @default(0) @map("balance_units")
+  lockedUnits           BigInt   @default(0) @map("locked_units")
+  lifetimeCreditedUnits BigInt   @default(0) @map("lifetime_credited_units")
+  lifetimeDebitedUnits  BigInt   @default(0) @map("lifetime_debited_units")
+  version               Int      @default(0)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  walletId          String                @map("wallet_id") @db.Uuid
+  userId            String                @map("user_id") @db.Uuid
+  type              WalletTransactionType
+  amountUnits       BigInt                @map("amount_units")
+  balanceAfterUnits BigInt                @map("balance_after_units")
+  referenceType     String?               @map("reference_type") @db.VarChar(50)
+  referenceId       String?               @map("reference_id") @db.Uuid
+  idempotencyKey    String                @unique @map("idempotency_key") @db.VarChar(128)
+  description       String?               @db.VarChar(255)
+  metadata          Json?
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([walletId, createdAt(sort: Desc)])
+  @@index([userId, type, createdAt(sort: Desc)])
+  @@index([referenceType, referenceId])
+  @@map("wallet_transactions")
+}
+
+model CoinPackage {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String    @db.VarChar(100)
+  priceInr   Decimal   @map("price_inr") @db.Decimal(12, 2)
+  coinUnits  BigInt    @map("coin_units")
+  bonusUnits BigInt    @default(0) @map("bonus_units")
+  isActive   Boolean   @default(true) @map("is_active")
+  sortOrder  Int       @default(0) @map("sort_order") @db.SmallInt
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  payments Payment[]
+
+  @@index([isActive, sortOrder])
+  @@map("coin_packages")
+}
+
+// =============================================================================
+// REFERRAL
+// =============================================================================
+
+model Referral {
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referrerId          String         @map("referrer_id") @db.Uuid
+  referredId          String         @unique @map("referred_id") @db.Uuid
+  referralCode        String         @map("referral_code") @db.VarChar(20)
+  status              ReferralStatus @default(pending)
+  referrerRewardUnits BigInt         @default(5000) @map("referrer_reward_units")
+  referredRewardUnits BigInt         @default(5000) @map("referred_reward_units")
+  qualificationEvent  String?        @map("qualification_event") @db.VarChar(50)
+  qualifiedAt         DateTime?      @map("qualified_at") @db.Timestamptz(6)
+  rewardedAt          DateTime?      @map("rewarded_at") @db.Timestamptz(6)
+  fraudScore          Int            @default(0) @map("fraud_score") @db.SmallInt
+  fraudFlags          Json?          @map("fraud_flags")
+  holdUntil           DateTime?      @map("hold_until") @db.Timestamptz(6)
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  referrer User @relation("Referrer", fields: [referrerId], references: [id], onDelete: Restrict)
+  referred User @relation("Referred", fields: [referredId], references: [id], onDelete: Restrict)
+
+  @@index([referrerId, status])
+  @@index([status, holdUntil])
+  @@index([createdAt(sort: Desc)])
+  @@map("referrals")
+}
+
+// =============================================================================
+// HOST & KYC
+// =============================================================================
+
+model HostApplication {
+  id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String                @unique @map("user_id") @db.Uuid
+  status          HostApplicationStatus @default(pending)
+  applicationNote String?               @map("application_note")
+  rejectionReason String?               @map("rejection_reason")
+  reviewedById    String?               @map("reviewed_by_id") @db.Uuid
+  reviewedAt      DateTime?             @map("reviewed_at") @db.Timestamptz(6)
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user       User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  reviewedBy User? @relation("HostApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("host_applications")
+}
+
+model HostKyc {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String                @map("user_id") @db.Uuid
+  provider            String                @db.VarChar(50)
+  providerReference   String?               @map("provider_reference") @db.VarChar(128)
+  panHash             String?               @map("pan_hash") @db.VarChar(64)
+  panMasked           String?               @map("pan_masked") @db.VarChar(10)
+  aadhaarMasked       String?               @map("aadhaar_masked") @db.VarChar(12)
+  fullName            String?               @map("full_name") @db.VarChar(100)
+  verificationStatus  KycVerificationStatus @default(pending) @map("verification_status")
+  failureReason       String?               @map("failure_reason")
+  documentStorageRefs Json?                 @map("document_storage_refs")
+  verifiedAt          DateTime?             @map("verified_at") @db.Timestamptz(6)
+  expiresAt           DateTime?             @map("expires_at") @db.Timestamptz(6)
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, verificationStatus])
+  @@index([providerReference])
+  @@map("host_kyc")
+}
+
+model HostProfile {
+  userId             String    @id @map("user_id") @db.Uuid
+  isAvailable        Boolean   @default(false) @map("is_available")
+  hostBio            String?   @map("host_bio") @db.VarChar(500)
+  languages          Json      @default("[]")
+  totalEarningsUnits BigInt    @default(0) @map("total_earnings_units")
+  withdrawableUnits  BigInt    @default(0) @map("withdrawable_units")
+  totalCalls         Int       @default(0) @map("total_calls")
+  totalCallSeconds   BigInt    @default(0) @map("total_call_seconds")
+  ratingSum          Int       @default(0) @map("rating_sum")
+  ratingCount        Int       @default(0) @map("rating_count")
+  approvedAt         DateTime? @map("approved_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([isAvailable])
+  @@map("host_profiles")
+}
+
+model HostEarning {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostId           String            @map("host_id") @db.Uuid
+  callId           String            @map("call_id") @db.Uuid
+  billingTickId    String?           @map("billing_tick_id") @db.Uuid
+  grossUnits       BigInt            @map("gross_units")
+  platformFeeUnits BigInt            @map("platform_fee_units")
+  netUnits         BigInt            @map("net_units")
+  status           HostEarningStatus @default(held)
+  availableAt      DateTime          @map("available_at") @db.Timestamptz(6)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  host        User             @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  call        Call             @relation(fields: [callId], references: [id], onDelete: Restrict)
+  billingTick CallBillingTick? @relation(fields: [billingTickId], references: [id], onDelete: SetNull)
+
+  @@index([hostId, status, availableAt])
+  @@index([callId])
+  @@map("host_earnings")
+}
+
+model HostBankAccount {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostId              String   @map("host_id") @db.Uuid
+  accountHolderName   String   @map("account_holder_name") @db.VarChar(100)
+  accountNumberEnc    String   @map("account_number_enc")
+  accountNumberMasked String   @map("account_number_masked") @db.VarChar(20)
+  ifscCode            String   @map("ifsc_code") @db.VarChar(11)
+  bankName            String?  @map("bank_name") @db.VarChar(100)
+  upiIdEnc            String?  @map("upi_id_enc")
+  isPrimary           Boolean  @default(false) @map("is_primary")
+  isVerified          Boolean  @default(false) @map("is_verified")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  host        User         @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  withdrawals Withdrawal[]
+
+  @@index([hostId, isPrimary])
+  @@map("host_bank_accounts")
+}
+
+// =============================================================================
+// WITHDRAWAL
+// =============================================================================
+
+model Withdrawal {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostId           String           @map("host_id") @db.Uuid
+  bankAccountId    String           @map("bank_account_id") @db.Uuid
+  amountUnits      BigInt           @map("amount_units")
+  amountInr        Decimal          @map("amount_inr") @db.Decimal(12, 2)
+  tdsInr           Decimal          @default(0) @map("tds_inr") @db.Decimal(12, 2)
+  netInr           Decimal          @map("net_inr") @db.Decimal(12, 2)
+  status           WithdrawalStatus @default(requested)
+  razorpayPayoutId String?          @map("razorpay_payout_id") @db.VarChar(64)
+  utr              String?          @db.VarChar(64)
+  rejectionReason  String?          @map("rejection_reason")
+  approvedById     String?          @map("approved_by_id") @db.Uuid
+  approvedAt       DateTime?        @map("approved_at") @db.Timestamptz(6)
+  processedAt      DateTime?        @map("processed_at") @db.Timestamptz(6)
+  idempotencyKey   String           @unique @map("idempotency_key") @db.VarChar(128)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  host        User            @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  bankAccount HostBankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+  approvedBy  User?           @relation("WithdrawalApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([hostId, status, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@map("withdrawals")
+}
+
+// =============================================================================
+// VIDEO CALLS
+// =============================================================================
+
+model Call {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callerId          String         @map("caller_id") @db.Uuid
+  calleeId          String         @map("callee_id") @db.Uuid
+  zegoRoomId        String         @map("zego_room_id") @db.VarChar(64)
+  status            CallStatus     @default(initiated)
+  isFreeCall        Boolean        @default(false) @map("is_free_call")
+  startedAt         DateTime?      @map("started_at") @db.Timestamptz(6)
+  answeredAt        DateTime?      @map("answered_at") @db.Timestamptz(6)
+  endedAt           DateTime?      @map("ended_at") @db.Timestamptz(6)
+  durationSeconds   Int            @default(0) @map("duration_seconds")
+  coinsChargedUnits BigInt         @default(0) @map("coins_charged_units")
+  endReason         CallEndReason? @map("end_reason")
+  callerIp          String?        @map("caller_ip") @db.Inet
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  caller       User              @relation("Caller", fields: [callerId], references: [id], onDelete: Restrict)
+  callee       User              @relation("Callee", fields: [calleeId], references: [id], onDelete: Restrict)
+  billingTicks CallBillingTick[]
+  consents     CallConsent[]
+  hostEarnings HostEarning[]
+  reports      Report[]
+
+  @@index([callerId, createdAt(sort: Desc)])
+  @@index([calleeId, createdAt(sort: Desc)])
+  @@index([status])
+  @@index([zegoRoomId])
+  @@map("calls")
+}
+
+model CallBillingTick {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callId                  String   @map("call_id") @db.Uuid
+  tickNumber              Int      @map("tick_number")
+  coinsDeductedUnits      BigInt   @map("coins_deducted_units")
+  callerBalanceAfterUnits BigInt   @map("caller_balance_after_units")
+  hostEarningUnits        BigInt   @map("host_earning_units")
+  platformFeeUnits        BigInt   @map("platform_fee_units")
+  idempotencyKey          String   @unique @map("idempotency_key") @db.VarChar(128)
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  call         Call          @relation(fields: [callId], references: [id], onDelete: Cascade)
+  hostEarnings HostEarning[]
+
+  @@unique([callId, tickNumber])
+  @@index([callId])
+  @@map("call_billing_ticks")
+}
+
+model CallConsent {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callId          String   @map("call_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  documentVersion String   @map("document_version") @db.VarChar(20)
+  ipAddress       String?  @map("ip_address") @db.Inet
+  consentedAt     DateTime @default(now()) @map("consented_at") @db.Timestamptz(6)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([callId, userId])
+  @@map("call_consents")
+}
+
+// =============================================================================
+// DISCOVERY
+// =============================================================================
+
+model Swipe {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  swiperId  String      @map("swiper_id") @db.Uuid
+  targetId  String      @map("target_id") @db.Uuid
+  action    SwipeAction
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  swiper User @relation("Swiper", fields: [swiperId], references: [id], onDelete: Cascade)
+  target User @relation("SwipeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([swiperId, targetId])
+  @@index([swiperId, createdAt(sort: Desc)])
+  @@index([targetId, action])
+  @@map("swipes")
+}
+
+model Match {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userAId   String   @map("user_a_id") @db.Uuid
+  userBId   String   @map("user_b_id") @db.Uuid
+  source    String   @default("swipe") @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userA User @relation("MatchUserA", fields: [userAId], references: [id], onDelete: Restrict)
+  userB User @relation("MatchUserB", fields: [userBId], references: [id], onDelete: Restrict)
+
+  @@unique([userAId, userBId])
+  @@index([userAId, isActive])
+  @@index([userBId, isActive])
+  @@map("matches")
+}
+
+// =============================================================================
+// MESSAGING
+// =============================================================================
+
+model Conversation {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  participantAId     String    @map("participant_a_id") @db.Uuid
+  participantBId     String    @map("participant_b_id") @db.Uuid
+  lastMessageAt      DateTime? @map("last_message_at") @db.Timestamptz(6)
+  lastMessagePreview String?   @map("last_message_preview") @db.VarChar(100)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  participantA User      @relation("ConversationA", fields: [participantAId], references: [id], onDelete: Restrict)
+  participantB User      @relation("ConversationB", fields: [participantBId], references: [id], onDelete: Restrict)
+  messages     Message[]
+
+  @@unique([participantAId, participantBId])
+  @@index([participantAId, lastMessageAt(sort: Desc)])
+  @@index([participantBId, lastMessageAt(sort: Desc)])
+  @@map("conversations")
+}
+
+model Message {
+  id               String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId   String                  @map("conversation_id") @db.Uuid
+  senderId         String                  @map("sender_id") @db.Uuid
+  content          String
+  moderationStatus MessageModerationStatus @default(approved) @map("moderation_status")
+  flaggedReason    String?                 @map("flagged_reason") @db.VarChar(100)
+  readAt           DateTime?               @map("read_at") @db.Timestamptz(6)
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime?               @map("deleted_at") @db.Timestamptz(6)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  reports      Report[]
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@index([moderationStatus, createdAt])
+  @@map("messages")
+}
+
+// =============================================================================
+// SAFETY, REPORTING & MODERATION
+// =============================================================================
+
+model Block {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  reason    String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("blocks")
+}
+
+model Report {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterId       String            @map("reporter_id") @db.Uuid
+  reportedId       String            @map("reported_id") @db.Uuid
+  callId           String?           @map("call_id") @db.Uuid
+  messageId        String?           @map("message_id") @db.Uuid
+  category         ReportCategory
+  description      String?
+  evidenceUrl      String?           @map("evidence_url")
+  status           ReportStatus      @default(open)
+  severity         ReportSeverity    @default(medium)
+  assignedToId     String?           @map("assigned_to_id") @db.Uuid
+  resolution       String?
+  resolutionAction ResolutionAction? @map("resolution_action")
+  resolvedById     String?           @map("resolved_by_id") @db.Uuid
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  resolvedAt       DateTime?         @map("resolved_at") @db.Timestamptz(6)
+
+  reporter    User                @relation("Reporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  reported    User                @relation("Reported", fields: [reportedId], references: [id], onDelete: Restrict)
+  call        Call?               @relation(fields: [callId], references: [id], onDelete: SetNull)
+  message     Message?            @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  assignedTo  User?               @relation("ReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolvedBy  User?               @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  suspensions AccountSuspension[]
+
+  @@index([status, severity, createdAt])
+  @@index([reportedId, createdAt(sort: Desc)])
+  @@index([assignedToId, status])
+  @@map("reports")
+}
+
+model AbuseSignal {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  signalType  String   @map("signal_type") @db.VarChar(50)
+  scoreDelta  Int      @map("score_delta")
+  sourceTable String?  @map("source_table") @db.VarChar(50)
+  sourceId    String?  @map("source_id") @db.Uuid
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([signalType, createdAt(sort: Desc)])
+  @@map("abuse_signals")
+}
+
+model AccountSuspension {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String       @map("user_id") @db.Uuid
+  reason        String
+  suspendedById String       @map("suspended_by_id") @db.Uuid
+  reportId      String?      @map("report_id") @db.Uuid
+  startsAt      DateTime     @default(now()) @map("starts_at") @db.Timestamptz(6)
+  endsAt        DateTime?    @map("ends_at") @db.Timestamptz(6)
+  isPermanent   Boolean      @default(false) @map("is_permanent")
+  appealStatus  AppealStatus @default(none) @map("appeal_status")
+  appealNotes   String?      @map("appeal_notes")
+  liftedAt      DateTime?    @map("lifted_at") @db.Timestamptz(6)
+  liftedById    String?      @map("lifted_by_id") @db.Uuid
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user        User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  suspendedBy User    @relation("SuspensionIssuer", fields: [suspendedById], references: [id], onDelete: Restrict)
+  report      Report? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  liftedBy    User?   @relation("SuspensionLifter", fields: [liftedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, endsAt])
+  @@index([appealStatus])
+  @@map("account_suspensions")
+}
+
+model ModerationQueue {
+  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  targetType     ModerationTargetType  @map("target_type")
+  targetId       String                @map("target_id") @db.Uuid
+  userId         String?               @map("user_id") @db.Uuid
+  status         ModerationQueueStatus @default(pending)
+  priority       Int                   @default(5) @db.SmallInt
+  autoFlagReason String?               @map("auto_flag_reason") @db.VarChar(100)
+  moderatorNotes String?               @map("moderator_notes")
+  reviewedById   String?               @map("reviewed_by_id") @db.Uuid
+  reviewedAt     DateTime?             @map("reviewed_at") @db.Timestamptz(6)
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user       User? @relation("ModerationSubject", fields: [userId], references: [id], onDelete: SetNull)
+  reviewedBy User? @relation("ModerationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, priority, createdAt])
+  @@index([targetType, targetId])
+  @@index([userId])
+  @@map("moderation_queue")
+}
+
+// =============================================================================
+// ADMIN & COMPLIANCE
+// =============================================================================
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorRole  String?  @map("actor_role") @db.VarChar(30)
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   String?  @map("entity_id") @db.Uuid
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  ipAddress  String?  @map("ip_address") @db.Inet
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model PlatformConfig {
+  key         String   @id @db.VarChar(100)
+  value       Json
+  description String?
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("platform_config")
+}
+
+model GrievanceTicket {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String?         @map("user_id") @db.Uuid
+  complainantName  String          @map("complainant_name") @db.VarChar(100)
+  complainantEmail String          @map("complainant_email") @db.VarChar(255)
+  subject          String          @db.VarChar(200)
+  description      String
+  status           GrievanceStatus @default(received)
+  acknowledgedAt   DateTime?       @map("acknowledged_at") @db.Timestamptz(6)
+  resolvedAt       DateTime?       @map("resolved_at") @db.Timestamptz(6)
+  officerNotes     String?         @map("officer_notes")
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("grievance_tickets")
+}
+
+// =============================================================================
+// PAYMENTS
+// =============================================================================
+
+model Payment {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  packageId         String?       @map("package_id") @db.Uuid
+  razorpayOrderId   String        @unique @map("razorpay_order_id") @db.VarChar(64)
+  razorpayPaymentId String?       @map("razorpay_payment_id") @db.VarChar(64)
+  razorpaySignature String?       @map("razorpay_signature") @db.VarChar(128)
+  amountInr         Decimal       @map("amount_inr") @db.Decimal(12, 2)
+  gstInr            Decimal       @default(0) @map("gst_inr") @db.Decimal(12, 2)
+  totalInr          Decimal       @map("total_inr") @db.Decimal(12, 2)
+  coinUnitsCredited BigInt        @default(0) @map("coin_units_credited")
+  status            PaymentStatus @default(created)
+  paymentMethod     String?       @map("payment_method") @db.VarChar(30)
+  invoiceNumber     String?       @map("invoice_number") @db.VarChar(30)
+  invoiceUrl        String?       @map("invoice_url")
+  failureReason     String?       @map("failure_reason")
+  idempotencyKey    String        @unique @map("idempotency_key") @db.VarChar(128)
+  metadata          Json?
+  paidAt            DateTime?     @map("paid_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  package       CoinPackage?          @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  webhookEvents PaymentWebhookEvent[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@index([razorpayPaymentId])
+  @@map("payments")
+}
+
+model PaymentWebhookEvent {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  razorpayEventId String    @unique @map("razorpay_event_id") @db.VarChar(64)
+  eventType       String    @map("event_type") @db.VarChar(50)
+  paymentId       String?   @map("payment_id") @db.Uuid
+  payload         Json
+  processed       Boolean   @default(false)
+  processedAt     DateTime? @map("processed_at") @db.Timestamptz(6)
+  error           String?
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([processed, createdAt])
+  @@index([eventType, createdAt(sort: Desc)])
+  @@map("payment_webhook_events")
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+model DeviceToken {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String         @map("user_id") @db.Uuid
+  tokenHash  String         @map("token_hash") @db.VarChar(64)
+  platform   DevicePlatform
+  isActive   Boolean        @default(true) @map("is_active")
+  lastUsedAt DateTime?      @map("last_used_at") @db.Timestamptz(6)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tokenHash])
+  @@index([userId, isActive])
+  @@map("device_tokens")
+}
