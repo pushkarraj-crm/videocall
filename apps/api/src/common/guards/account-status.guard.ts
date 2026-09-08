@@ -17,7 +17,11 @@ export class AccountStatusGuard implements CanActivate {
     }
 
     if (user.status === UserStatus.suspended) {
-      throw new BusinessException('Account is suspended', 403, 'ACCOUNT_SUSPENDED');
+      throw new BusinessException(
+        'Your account has been suspended. Please contact support.',
+        403,
+        'ACCOUNT_SUSPENDED',
+      );
     }
 
     if (user.status === UserStatus.deleted) {

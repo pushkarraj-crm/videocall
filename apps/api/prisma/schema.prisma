@@ -56,12 +56,48 @@ enum ConsentDocumentType {
   @@map("consent_document_enum")
 }
 
+enum HostProfileType {
+  REAL_HOST
+  MANAGED_HOST
+  AI_HOST
+
+  @@map("host_profile_type_enum")
+}
+
+enum VirtualHostStatus {
+  ONLINE
+  OFFLINE
+  BUSY
+
+  @@map("virtual_host_status_enum")
+}
+
+enum GiftCategory {
+  basic
+  premium
+  luxury
+  vip
+
+  @@map("gift_category_enum")
+}
+
+enum GiftAnimationTier {
+  floating
+  center
+  fullscreen
+  cinematic
+
+  @@map("gift_animation_tier_enum")
+}
+
 enum WalletTransactionType {
-  recharge
+  payment_credit
   call_charge
-  referral_bonus
-  host_earning
+  gift_send
+  gift_receive
+  call_earning
   withdrawal
+  referral_bonus
   refund
   admin_adjustment
   payout_reversal
@@ -86,6 +122,60 @@ enum ReferralStatus {
   rejected
 
   @@map("referral_status_enum")
+}
+
+enum PromoCampaignType {
+  welcome
+  first_recharge
+  weekend
+  festival
+  flash_sale
+  cashback
+  bonus_coins
+  vip
+  manual
+  referral_bonus
+  limited_time
+
+  @@map("promo_campaign_type_enum")
+}
+
+enum PromoDiscountType {
+  fixed_amount
+  percentage
+  bonus_coins
+  cashback
+  mixed
+
+  @@map("promo_discount_type_enum")
+}
+
+enum PromoVisibility {
+  public
+  private
+  invite_only
+  vip_only
+  referral_only
+
+  @@map("promo_visibility_enum")
+}
+
+enum CampaignStatus {
+  draft
+  active
+  paused
+  ended
+
+  @@map("campaign_status_enum")
+}
+
+enum PromoUsageStatus {
+  pending
+  completed
+  cashback_pending
+  cancelled
+
+  @@map("promo_usage_status_enum")
 }
 
 enum HostApplicationStatus {
@@ -158,6 +248,40 @@ enum CallEndReason {
   @@map("call_end_reason_enum")
 }
 
+enum CallHostType {
+  REAL_HOST
+  AI_HOST
+
+  @@map("call_host_type_enum")
+}
+
+enum CallHistoryType {
+  audio
+  video
+
+  @@map("call_history_type_enum")
+}
+
+enum CallHistoryStatus {
+  ringing
+  connected
+  completed
+  missed
+  rejected
+  cancelled
+  failed
+
+  @@map("call_history_status_enum")
+}
+
+enum CallHistoryEndedBy {
+  caller
+  host
+  system
+
+  @@map("call_history_ended_by_enum")
+}
+
 enum MessageModerationStatus {
   pending
   approved
@@ -175,6 +299,11 @@ enum ReportCategory {
   minor_safety
   impersonation
   other
+  fake_profile
+  abusive_language
+  nudity
+  scam
+  underage
 
   @@map("report_category_enum")
 }
@@ -254,6 +383,217 @@ enum DevicePlatform {
   @@map("device_platform_enum")
 }
 
+enum NotificationType {
+  incoming_call
+  missed_call
+  call_rejected
+  call_cancelled
+  call_ended
+  recharge_success
+  recharge_failed
+  withdrawal_requested
+  withdrawal_approved
+  withdrawal_rejected
+  withdrawal_paid
+  kyc_submitted
+  kyc_approved
+  kyc_rejected
+  referral_reward
+  friend_joined
+  coupon_available
+  coupon_expiring
+  festival_offer
+  bonus_coins
+  new_follower
+  new_review
+  rating_milestone
+  admin_announcement
+  system_notice
+  maintenance_notice
+  feature_release
+  security_alert
+  password_changed
+  login_new_device
+
+  @@map("notification_type_enum")
+}
+
+enum NotificationReferenceType {
+  CALL
+  WITHDRAWAL
+  RECHARGE
+  KYC
+  REFERRAL
+  PROMOTION
+  SYSTEM
+
+  @@map("notification_reference_type_enum")
+}
+
+enum NotificationBroadcastStatus {
+  draft
+  scheduled
+  sent
+  cancelled
+
+  @@map("notification_broadcast_status_enum")
+}
+
+enum NotificationPriority {
+  low
+  normal
+  high
+  urgent
+
+  @@map("notification_priority_enum")
+}
+
+enum CommunicationChannel {
+  email
+  sms
+  whatsapp
+
+  @@map("communication_channel_enum")
+}
+
+enum CommunicationEventType {
+  welcome_email
+  signup_success
+  google_login_welcome
+  otp_verification
+  password_reset
+  login_new_device
+  security_alert
+  recharge_success
+  recharge_failed
+  receipt
+  invoice
+  kyc_submitted
+  kyc_approved
+  kyc_rejected
+  withdrawal_submitted
+  withdrawal_approved
+  withdrawal_rejected
+  withdrawal_paid
+  missed_call_summary
+  monthly_call_summary
+  referral_reward
+  friend_joined
+  coupon_available
+  coupon_expiry
+  festival_offer
+  admin_announcement
+  maintenance
+  feature_release
+  admin_custom
+
+  @@map("communication_event_type_enum")
+}
+
+enum CommunicationQueueStatus {
+  pending
+  processing
+  sent
+  failed
+  dead_letter
+
+  @@map("communication_queue_status_enum")
+}
+
+enum CommunicationLogStatus {
+  queued
+  sent
+  delivered
+  opened
+  clicked
+  failed
+  bounced
+  spam
+  unsubscribed
+
+  @@map("communication_log_status_enum")
+}
+
+enum CommunicationCampaignStatus {
+  draft
+  scheduled
+  sending
+  sent
+  cancelled
+
+  @@map("communication_campaign_status_enum")
+}
+
+enum CommunicationAudience {
+  all_users
+  hosts
+  users
+  verified_hosts
+  vip_users
+  single_user
+
+  @@map("communication_audience_enum")
+}
+
+enum RiskLevel {
+  low
+  medium
+  high
+  critical
+
+  @@map("risk_level_enum")
+}
+
+enum RiskEventType {
+  signup
+  login
+  recharge
+  withdrawal
+  referral
+  coupon
+  call
+  profile_update
+  device_change
+  payment_failed
+  kyc_submit
+
+  @@map("risk_event_type_enum")
+}
+
+enum FraudFlagType {
+  account_abuse
+  referral_fraud
+  promo_fraud
+  wallet_fraud
+  withdrawal_fraud
+  kyc_fraud
+  call_fraud
+  geo_anomaly
+  device_abuse
+  multi_account
+
+  @@map("fraud_flag_type_enum")
+}
+
+enum FraudFlagStatus {
+  open
+  reviewing
+  resolved
+  dismissed
+  safe
+
+  @@map("fraud_flag_status_enum")
+}
+
+enum RiskQueueStatus {
+  pending
+  processing
+  completed
+  failed
+
+  @@map("risk_queue_status_enum")
+}
+
 // =============================================================================
 // IDENTITY & COMPLIANCE
 // =============================================================================
@@ -275,6 +615,10 @@ model User {
   status            UserStatus @default(active)
   freeCallsUsed     Int        @default(0) @map("free_calls_used") @db.SmallInt
   deviceFingerprint String?    @map("device_fingerprint") @db.VarChar(64)
+  adminNote                String?  @map("admin_note")
+  communityWarningVisible  Boolean  @default(false) @map("community_warning_visible")
+  sessionRevokedAt         DateTime? @map("session_revoked_at") @db.Timestamptz(6)
+  lastLoginAt              DateTime? @map("last_login_at") @db.Timestamptz(6)
   lastSeenAt        DateTime?  @map("last_seen_at") @db.Timestamptz(6)
   createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -288,6 +632,7 @@ model User {
   consents                 UserConsent[]
   wallet                   Wallet?
   walletTransactions       WalletTransaction[]
+  refreshTokens            RefreshToken[]
   referralsMade            Referral[]            @relation("Referrer")
   referralReceived         Referral?             @relation("Referred")
   hostApplication          HostApplication?
@@ -299,7 +644,11 @@ model User {
   withdrawalsApproved      Withdrawal[]          @relation("WithdrawalApprover")
   callsAsCaller            Call[]                @relation("Caller")
   callsAsCallee              Call[]                @relation("Callee")
+  callHistoryAsCaller      CallHistory[]         @relation("CallHistoryCaller")
+  callHistoryAsHost        CallHistory[]         @relation("CallHistoryHost")
   callConsents             CallConsent[]
+  giftsSent                CallGift[]            @relation("GiftSender")
+  giftsReceived            CallGift[]            @relation("GiftRecipient")
   swipesMade               Swipe[]               @relation("Swiper")
   swipesReceived           Swipe[]               @relation("SwipeTarget")
   matchesAsA               Match[]               @relation("MatchUserA")
@@ -320,11 +669,40 @@ model User {
   moderationItems          ModerationQueue[]     @relation("ModerationSubject")
   moderationReviews        ModerationQueue[]     @relation("ModerationReviewer")
   auditLogs                AuditLog[]
+  adminLogsPerformed       AdminLog[]            @relation("AdminLogActor")
+  adminLogsTargeted        AdminLog[]            @relation("AdminLogTarget")
   configUpdates            PlatformConfig[]
   grievanceTickets         GrievanceTicket[]
   payments                 Payment[]
   deviceTokens             DeviceToken[]
+  notifications            Notification[]
   hostApplicationsReviewed HostApplication[]     @relation("HostApplicationReviewer")
+  reviewsGiven             Review[]              @relation("ReviewAuthor")
+  reviewsReceived          Review[]              @relation("ReviewHost")
+  hostsFollowed            HostFollower[]        @relation("FollowerUser")
+  hostFollowers            HostFollower[]        @relation("FollowedHost")
+  promoUsages              PromoUsage[]
+  promoApplication         PromoApplication?
+  notificationSettings     NotificationSettings?
+  notificationBroadcasts   NotificationBroadcast[] @relation("BroadcastAdmin")
+  communicationSettings    CommunicationSettings?
+  communicationLogs        CommunicationLog[]
+  communicationCampaigns   CommunicationCampaign[] @relation("CommunicationCampaignAdmin")
+  riskEvents               RiskEvent[]
+  fraudFlags               FraudFlag[]
+  riskProfile              RiskUserProfile?
+  deviceFingerprints       DeviceFingerprintRecord[]
+  riskAudits               RiskDecisionAudit[]     @relation("RiskAuditUser")
+  virtualHostSessions      VirtualHostSession[]    @relation("VirtualHostSessionUser")
+  virtualHostMemories      VirtualHostMemory[]     @relation("VirtualHostMemoryUser")
+  virtualHostConversationTurns VirtualHostConversationTurn[] @relation("VirtualHostConversationUser")
+  virtualHostVoiceSessions     VirtualHostVoiceSession[]     @relation("VirtualHostVoiceUser")
+  aiHostMemories           AIHostMemory[]          @relation("AIHostMemoryUser")
+  aiHostMemoriesAsHost     AIHostMemory[]          @relation("AIHostMemoryHost")
+  conversationHistory      ConversationHistory[]   @relation("ConversationHistoryUser")
+  conversationHistoryAsHost ConversationHistory[]  @relation("ConversationHistoryHost")
+  legalPoliciesPublished   LegalPolicy[]           @relation("LegalPolicyPublisher")
+  legalPolicyRevisions     LegalPolicyRevision[]   @relation("LegalPolicyRevisionPublisher")
 
   @@index([status, deletedAt])
   @@index([abuseScore(sort: Desc)])
@@ -387,6 +765,21 @@ model UserConsent {
   @@map("user_consents")
 }
 
+model RefreshToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(128)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
 // =============================================================================
 // COIN WALLET
 // =============================================================================
@@ -432,13 +825,17 @@ model WalletTransaction {
 }
 
 model CoinPackage {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String    @db.VarChar(100)
-  priceInr   Decimal   @map("price_inr") @db.Decimal(12, 2)
-  coinUnits  BigInt    @map("coin_units")
-  bonusUnits BigInt    @default(0) @map("bonus_units")
-  isActive   Boolean   @default(true) @map("is_active")
-  sortOrder  Int       @default(0) @map("sort_order") @db.SmallInt
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String    @db.VarChar(100)
+  priceInr    Decimal   @map("price_inr") @db.Decimal(12, 2)
+  mrpInr      Decimal?  @map("mrp_inr") @db.Decimal(12, 2)
+  coinUnits   BigInt    @map("coin_units")
+  bonusUnits  BigInt    @default(0) @map("bonus_units")
+  isBestValue    Boolean   @default(false) @map("is_best_value")
+  isMostPopular  Boolean   @default(false) @map("is_most_popular")
+  isLimitedOffer Boolean   @default(false) @map("is_limited_offer")
+  isActive       Boolean   @default(true) @map("is_active")
+  sortOrder   Int       @default(0) @map("sort_order") @db.SmallInt
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
@@ -461,9 +858,16 @@ model Referral {
   status              ReferralStatus @default(pending)
   referrerRewardUnits BigInt         @default(5000) @map("referrer_reward_units")
   referredRewardUnits BigInt         @default(5000) @map("referred_reward_units")
+  rewardGiven         Boolean        @default(false) @map("reward_given")
   qualificationEvent  String?        @map("qualification_event") @db.VarChar(50)
   qualifiedAt         DateTime?      @map("qualified_at") @db.Timestamptz(6)
+  completedAt         DateTime?      @map("completed_at") @db.Timestamptz(6)
   rewardedAt          DateTime?      @map("rewarded_at") @db.Timestamptz(6)
+  cancelledAt         DateTime?      @map("cancelled_at") @db.Timestamptz(6)
+  cancelReason        String?        @map("cancel_reason")
+  adminNote           String?        @map("admin_note")
+  referredIp          String?        @map("referred_ip") @db.Inet
+  referredDeviceFingerprint String?  @map("referred_device_fingerprint") @db.VarChar(64)
   fraudScore          Int            @default(0) @map("fraud_score") @db.SmallInt
   fraudFlags          Json?          @map("fraud_flags")
   holdUntil           DateTime?      @map("hold_until") @db.Timestamptz(6)
@@ -477,6 +881,100 @@ model Referral {
   @@index([status, holdUntil])
   @@index([createdAt(sort: Desc)])
   @@map("referrals")
+}
+
+// =============================================================================
+// PROMOTIONS & CAMPAIGNS
+// =============================================================================
+
+model Campaign {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String         @db.VarChar(120)
+  banner    String?
+  status    CampaignStatus @default(draft)
+  startDate DateTime       @map("start_date") @db.Timestamptz(6)
+  endDate   DateTime       @map("end_date") @db.Timestamptz(6)
+  priority  Int            @default(0) @db.SmallInt
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  promoCodes PromoCode[]
+
+  @@index([status, startDate, endDate])
+  @@index([priority(sort: Desc)])
+  @@map("campaigns")
+}
+
+model PromoCode {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code            String            @unique @db.VarChar(32)
+  title           String            @db.VarChar(120)
+  description     String?
+  campaignType    PromoCampaignType @map("campaign_type")
+  discountType    PromoDiscountType @map("discount_type")
+  discountValue   Decimal           @default(0) @map("discount_value") @db.Decimal(12, 2)
+  maxDiscount     Decimal?          @map("max_discount") @db.Decimal(12, 2)
+  minimumRecharge Decimal           @default(0) @map("minimum_recharge") @db.Decimal(12, 2)
+  bonusCoins      Int               @default(0) @map("bonus_coins")
+  cashbackCoins   Int               @default(0) @map("cashback_coins")
+  usageLimit      Int?              @map("usage_limit")
+  usagePerUser    Int               @default(1) @map("usage_per_user")
+  currentUsage    Int               @default(0) @map("current_usage")
+  visibility      PromoVisibility   @default(public)
+  campaignId      String?           @map("campaign_id") @db.Uuid
+  isActive        Boolean           @default(true) @map("is_active")
+  startsAt        DateTime?         @map("starts_at") @db.Timestamptz(6)
+  expiresAt       DateTime?         @map("expires_at") @db.Timestamptz(6)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  campaign Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  usages   PromoUsage[]
+  applications PromoApplication[]
+
+  @@index([isActive, startsAt, expiresAt])
+  @@index([campaignType, isActive])
+  @@index([campaignId])
+  @@map("promo_codes")
+}
+
+model PromoUsage {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  promoId           String           @map("promo_id") @db.Uuid
+  userId            String           @map("user_id") @db.Uuid
+  paymentId         String           @unique @map("payment_id") @db.Uuid
+  amount            Decimal          @db.Decimal(12, 2)
+  discountApplied   Decimal          @default(0) @map("discount_applied") @db.Decimal(12, 2)
+  bonusCoinsGiven   Int              @default(0) @map("bonus_coins_given")
+  cashbackCoinsGiven Int             @default(0) @map("cashback_coins_given")
+  status            PromoUsageStatus @default(pending)
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  promo   PromoCode @relation(fields: [promoId], references: [id], onDelete: Restrict)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  payment Payment   @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([promoId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@map("promo_usages")
+}
+
+model PromoApplication {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  promoId     String   @map("promo_id") @db.Uuid
+  packageId   String?  @map("package_id") @db.Uuid
+  customCoins Int?     @map("custom_coins")
+  preview     Json
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promo PromoCode @relation(fields: [promoId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("promo_applications")
 }
 
 // =============================================================================
@@ -502,21 +1000,28 @@ model HostApplication {
 }
 
 model HostKyc {
-  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId              String                @map("user_id") @db.Uuid
-  provider            String                @db.VarChar(50)
-  providerReference   String?               @map("provider_reference") @db.VarChar(128)
-  panHash             String?               @map("pan_hash") @db.VarChar(64)
-  panMasked           String?               @map("pan_masked") @db.VarChar(10)
-  aadhaarMasked       String?               @map("aadhaar_masked") @db.VarChar(12)
-  fullName            String?               @map("full_name") @db.VarChar(100)
-  verificationStatus  KycVerificationStatus @default(pending) @map("verification_status")
-  failureReason       String?               @map("failure_reason")
-  documentStorageRefs Json?                 @map("document_storage_refs")
-  verifiedAt          DateTime?             @map("verified_at") @db.Timestamptz(6)
-  expiresAt           DateTime?             @map("expires_at") @db.Timestamptz(6)
-  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                     String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                 String                @map("user_id") @db.Uuid
+  provider               String                @default("manual") @db.VarChar(50)
+  providerReference      String?               @map("provider_reference") @db.VarChar(128)
+  fullName               String?               @map("full_name") @db.VarChar(100)
+  dob                    DateTime?             @db.Date
+  upiIdEnc               String?               @map("upi_id_enc") @db.VarChar(128)
+  aadhaarHash            String?               @map("aadhaar_hash") @db.VarChar(64)
+  aadhaarMasked          String?               @map("aadhaar_masked") @db.VarChar(12)
+  panHash                String?               @map("pan_hash") @db.VarChar(64)
+  panMasked              String?               @map("pan_masked") @db.VarChar(10)
+  selfieStorageKey       String?               @map("selfie_storage_key") @db.VarChar(256)
+  aadhaarFrontStorageKey String?               @map("aadhaar_front_storage_key") @db.VarChar(256)
+  aadhaarBackStorageKey  String?               @map("aadhaar_back_storage_key") @db.VarChar(256)
+  verificationStatus     KycVerificationStatus @default(pending) @map("verification_status")
+  failureReason          String?               @map("failure_reason")
+  adminNote              String?               @map("admin_note")
+  documentStorageRefs    Json?                 @map("document_storage_refs")
+  verifiedAt             DateTime?             @map("verified_at") @db.Timestamptz(6)
+  expiresAt              DateTime?             @map("expires_at") @db.Timestamptz(6)
+  createdAt              DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
@@ -528,6 +1033,9 @@ model HostKyc {
 model HostProfile {
   userId             String    @id @map("user_id") @db.Uuid
   isAvailable        Boolean   @default(false) @map("is_available")
+  isOnline           Boolean   @default(false) @map("is_online")
+  isBusy             Boolean   @default(false) @map("is_busy")
+  lastSeenAt         DateTime? @map("last_seen_at") @db.Timestamptz(6)
   hostBio            String?   @map("host_bio") @db.VarChar(500)
   languages          Json      @default("[]")
   totalEarningsUnits BigInt    @default(0) @map("total_earnings_units")
@@ -536,14 +1044,220 @@ model HostProfile {
   totalCallSeconds   BigInt    @default(0) @map("total_call_seconds")
   ratingSum          Int       @default(0) @map("rating_sum")
   ratingCount        Int       @default(0) @map("rating_count")
-  approvedAt         DateTime? @map("approved_at") @db.Timestamptz(6)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  approvedAt               DateTime? @map("approved_at") @db.Timestamptz(6)
+  adminCallsDisabled       Boolean   @default(false) @map("admin_calls_disabled")
+  adminWithdrawalsDisabled Boolean   @default(false) @map("admin_withdrawals_disabled")
+  profileType              HostProfileType    @default(REAL_HOST) @map("profile_type")
+  virtualHostEnabled       Boolean            @default(false) @map("virtual_host_enabled")
+  virtualHostPriority      Int                @default(0) @map("virtual_host_priority")
+  virtualHostVoice         Json?              @map("virtual_host_voice")
+  virtualHostAvatar        Json?              @map("virtual_host_avatar")
+  virtualHostPersonality   Json?              @map("virtual_host_personality")
+  virtualHostLanguage      String?            @map("virtual_host_language") @db.VarChar(16)
+  virtualHostRegion        String?            @map("virtual_host_region") @db.VarChar(64)
+  virtualHostGreeting      String?            @map("virtual_host_greeting") @db.VarChar(500)
+  virtualHostStatus        VirtualHostStatus? @map("virtual_host_status")
+  virtualHostGiftReactions Json?              @map("virtual_host_gift_reactions")
+  virtualHostSchedule      Json?              @map("virtual_host_schedule")
+  virtualHostPopularity    Int                @default(0) @map("virtual_host_popularity")
+  virtualHostConversation  Json?              @map("virtual_host_conversation")
+  virtualHostVideo         Json?              @map("virtual_host_video")
+  virtualHostWardrobe      Json?              @map("virtual_host_wardrobe")
+  virtualHostAssetSlug     String?            @map("virtual_host_asset_slug") @db.VarChar(64)
+  virtualHostGallery       Json               @default("[]") @map("virtual_host_gallery")
+  virtualHostUsername      String?            @map("virtual_host_username") @db.VarChar(50)
+  coinsPerMinuteUnits      BigInt?            @map("coins_per_minute_units")
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  hostHeartbeat        HostHeartbeat?
+  virtualHostSessions  VirtualHostSession[]
 
   @@index([isAvailable])
+  @@index([isOnline])
+  @@index([profileType, virtualHostEnabled])
+  @@index([virtualHostPriority])
   @@map("host_profiles")
+}
+
+model HostHeartbeat {
+  userId     String   @id @map("user_id") @db.Uuid
+  lastBeatAt DateTime @map("last_beat_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  hostProfile HostProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([lastBeatAt])
+  @@map("host_heartbeats")
+}
+
+model VirtualHostSession {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId            String    @unique @map("session_id") @db.VarChar(64)
+  callId               String    @unique @map("call_id") @db.Uuid
+  userId               String    @map("user_id") @db.Uuid
+  hostId               String    @map("host_id") @db.Uuid
+  profileType          HostProfileType @map("profile_type")
+  startedAt            DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  endedAt              DateTime? @map("ended_at") @db.Timestamptz(6)
+  durationSeconds      Int       @default(0) @map("duration_seconds")
+  coinsSpentUnits      BigInt    @default(0) @map("coins_spent_units")
+  giftsReceivedCount   Int       @default(0) @map("gifts_received_count")
+  turnCount            Int       @default(0) @map("turn_count")
+  avgResponseMs        Int       @default(0) @map("avg_response_ms")
+  rating               Int?      @map("rating")
+  conversationSummary  String?   @map("conversation_summary") @db.Text
+  personalitySnapshot  Json?     @map("personality_snapshot")
+  lockedVideoUrl       String?   @map("locked_video_url") @db.VarChar(512)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  call Call        @relation(fields: [callId], references: [id], onDelete: Cascade)
+  host HostProfile @relation(fields: [hostId], references: [userId], onDelete: Restrict)
+  user User        @relation("VirtualHostSessionUser", fields: [userId], references: [id], onDelete: Restrict)
+  conversationTurns VirtualHostConversationTurn[]
+  voiceSessions     VirtualHostVoiceSession[]
+
+  @@index([userId, startedAt(sort: Desc)])
+  @@index([hostId, startedAt(sort: Desc)])
+  @@index([profileType, startedAt(sort: Desc)])
+  @@map("virtual_host_sessions")
+}
+
+model VirtualHostVoiceSession {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  streamId          String    @unique @map("stream_id") @db.VarChar(64)
+  callId            String    @map("call_id") @db.Uuid
+  sessionId         String    @map("session_id") @db.VarChar(64)
+  userId            String    @map("user_id") @db.Uuid
+  hostId            String    @map("host_id") @db.Uuid
+  voiceProvider     String    @map("voice_provider") @db.VarChar(32)
+  voiceId           String    @map("voice_id") @db.VarChar(64)
+  language          String    @db.VarChar(16)
+  eventType         String    @default("message") @map("event_type") @db.VarChar(32)
+  textLength        Int       @default(0) @map("text_length")
+  chunkCount        Int       @default(0) @map("chunk_count")
+  firstChunkMs      Int?      @map("first_chunk_ms")
+  speechDurationMs  Int       @default(0) @map("speech_duration_ms")
+  interrupted       Boolean   @default(false)
+  metadata          Json?
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  endedAt           DateTime? @map("ended_at") @db.Timestamptz(6)
+
+  call            Call               @relation(fields: [callId], references: [id], onDelete: Cascade)
+  virtualSession  VirtualHostSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  user            User               @relation("VirtualHostVoiceUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([callId, createdAt(sort: Desc)])
+  @@index([hostId, createdAt(sort: Desc)])
+  @@map("virtual_host_voice_sessions")
+}
+
+model VirtualHostMemory {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                  String    @map("user_id") @db.Uuid
+  hostId                  String?   @map("host_id") @db.Uuid
+  nickname                String?   @map("nickname") @db.VarChar(64)
+  preferredLanguage       String?   @map("preferred_language") @db.VarChar(16)
+  favoriteTopics          Json      @default("[]") @map("favorite_topics")
+  giftHistorySummary      Json?     @map("gift_history_summary")
+  lastConversationAt      DateTime? @map("last_conversation_at") @db.Timestamptz(6)
+  friendshipScore         Int       @default(0) @map("friendship_score")
+  callCount               Int       @default(0) @map("call_count")
+  favoriteVirtualHostIds  Json      @default("[]") @map("favorite_virtual_host_ids")
+  conversationHistory     Json      @default("[]") @map("conversation_history")
+  lastCallSummary         String?   @map("last_call_summary") @db.Text
+  metadata                Json?
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation("VirtualHostMemoryUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hostId])
+  @@index([userId])
+  @@map("virtual_host_memory")
+}
+
+model VirtualHostConversationTurn {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId  String   @map("session_id") @db.VarChar(64)
+  callId     String   @map("call_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  hostId     String   @map("host_id") @db.Uuid
+  role       String   @db.VarChar(16)
+  eventType  String   @default("message") @map("event_type") @db.VarChar(32)
+  content    String   @db.Text
+  emotion    String?  @db.VarChar(32)
+  responseMs Int?     @map("response_ms")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  call    Call                @relation(fields: [callId], references: [id], onDelete: Cascade)
+  session VirtualHostSession  @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  user    User                @relation("VirtualHostConversationUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([callId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([hostId, createdAt])
+  @@map("virtual_host_conversation_turns")
+}
+
+model AIHostMemory {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostId            String    @map("host_id") @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  nickname          String?   @db.VarChar(64)
+  favoriteColor     String?   @map("favorite_color") @db.VarChar(64)
+  favoriteFood      String?   @map("favorite_food") @db.VarChar(128)
+  favoriteMovie     String?   @map("favorite_movie") @db.VarChar(128)
+  favoriteMusic     String?   @map("favorite_music") @db.VarChar(128)
+  favoriteOutfit    String?   @map("favorite_outfit") @db.VarChar(128)
+  birthday          String?   @db.VarChar(64)
+  relationshipScore Int       @default(0) @map("relationship_score")
+  lastCall          DateTime? @map("last_call") @db.Timestamptz(6)
+  lastGift          DateTime? @map("last_gift") @db.Timestamptz(6)
+  lastRecharge      DateTime? @map("last_recharge") @db.Timestamptz(6)
+  notes             String?   @db.Text
+  callCount         Int       @default(0) @map("call_count")
+  preferredLanguage String?   @map("preferred_language") @db.VarChar(16)
+  city              String?   @db.VarChar(64)
+  country           String?   @db.VarChar(64)
+  hobbies           Json      @default("[]")
+  work              String?   @db.VarChar(128)
+  favoriteTopics    Json      @default("[]") @map("favorite_topics")
+  memorySummary     String?   @map("memory_summary") @db.Text
+  metadata          Json?
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation("AIHostMemoryUser", fields: [userId], references: [id], onDelete: Cascade)
+  host User @relation("AIHostMemoryHost", fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@unique([hostId, userId])
+  @@index([userId])
+  @@index([hostId, relationshipScore(sort: Desc)])
+  @@map("ai_host_memory")
+}
+
+model ConversationHistory {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostId      String   @map("host_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  callId      String?  @map("call_id") @db.Uuid
+  userMessage String   @map("user_message") @db.Text
+  aiReply     String   @map("ai_reply") @db.Text
+  emotion     String?  @db.VarChar(32)
+  timestamp   DateTime @default(now()) @db.Timestamptz(6)
+
+  user User  @relation("ConversationHistoryUser", fields: [userId], references: [id], onDelete: Cascade)
+  host User  @relation("ConversationHistoryHost", fields: [hostId], references: [id], onDelete: Cascade)
+  call Call? @relation(fields: [callId], references: [id], onDelete: SetNull)
+
+  @@index([hostId, userId, timestamp(sort: Desc)])
+  @@index([callId])
+  @@map("conversation_history")
 }
 
 model HostEarning {
@@ -593,27 +1307,30 @@ model HostBankAccount {
 // =============================================================================
 
 model Withdrawal {
-  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  hostId           String           @map("host_id") @db.Uuid
-  bankAccountId    String           @map("bank_account_id") @db.Uuid
-  amountUnits      BigInt           @map("amount_units")
-  amountInr        Decimal          @map("amount_inr") @db.Decimal(12, 2)
-  tdsInr           Decimal          @default(0) @map("tds_inr") @db.Decimal(12, 2)
-  netInr           Decimal          @map("net_inr") @db.Decimal(12, 2)
-  status           WithdrawalStatus @default(requested)
-  razorpayPayoutId String?          @map("razorpay_payout_id") @db.VarChar(64)
-  utr              String?          @db.VarChar(64)
-  rejectionReason  String?          @map("rejection_reason")
-  approvedById     String?          @map("approved_by_id") @db.Uuid
-  approvedAt       DateTime?        @map("approved_at") @db.Timestamptz(6)
-  processedAt      DateTime?        @map("processed_at") @db.Timestamptz(6)
-  idempotencyKey   String           @unique @map("idempotency_key") @db.VarChar(128)
-  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostId             String           @map("host_id") @db.Uuid
+  bankAccountId      String?          @map("bank_account_id") @db.Uuid
+  upiId              String?          @map("upi_id") @db.VarChar(128)
+  accountHolderName  String?          @map("account_holder_name") @db.VarChar(128)
+  amountUnits        BigInt           @map("amount_units")
+  amountInr          Decimal          @map("amount_inr") @db.Decimal(12, 2)
+  tdsInr             Decimal          @default(0) @map("tds_inr") @db.Decimal(12, 2)
+  netInr             Decimal          @map("net_inr") @db.Decimal(12, 2)
+  status             WithdrawalStatus @default(requested)
+  razorpayPayoutId   String?          @map("razorpay_payout_id") @db.VarChar(64)
+  utr                String?          @db.VarChar(64)
+  rejectionReason    String?          @map("rejection_reason")
+  adminNote          String?          @map("admin_note")
+  approvedById       String?          @map("approved_by_id") @db.Uuid
+  approvedAt         DateTime?        @map("approved_at") @db.Timestamptz(6)
+  processedAt        DateTime?        @map("processed_at") @db.Timestamptz(6)
+  idempotencyKey     String           @unique @map("idempotency_key") @db.VarChar(128)
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  host        User            @relation(fields: [hostId], references: [id], onDelete: Restrict)
-  bankAccount HostBankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
-  approvedBy  User?           @relation("WithdrawalApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  host        User             @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  bankAccount HostBankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+  approvedBy  User?            @relation("WithdrawalApprover", fields: [approvedById], references: [id], onDelete: SetNull)
 
   @@index([hostId, status, createdAt(sort: Desc)])
   @@index([status, createdAt])
@@ -635,9 +1352,11 @@ model Call {
   answeredAt        DateTime?      @map("answered_at") @db.Timestamptz(6)
   endedAt           DateTime?      @map("ended_at") @db.Timestamptz(6)
   durationSeconds   Int            @default(0) @map("duration_seconds")
-  coinsChargedUnits BigInt         @default(0) @map("coins_charged_units")
-  endReason         CallEndReason? @map("end_reason")
-  callerIp          String?        @map("caller_ip") @db.Inet
+  coinsChargedUnits    BigInt         @default(0) @map("coins_charged_units")
+  coinsPerMinuteUnits  BigInt         @default(500) @map("coins_per_minute_units")
+  endReason            CallEndReason? @map("end_reason")
+  callerIp             String?        @map("caller_ip") @db.Inet
+  hostCallType         CallHostType?  @map("host_call_type")
   createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -645,8 +1364,15 @@ model Call {
   callee       User              @relation("Callee", fields: [calleeId], references: [id], onDelete: Restrict)
   billingTicks CallBillingTick[]
   consents     CallConsent[]
+  gifts        CallGift[]
   hostEarnings HostEarning[]
   reports      Report[]
+  callHistory         CallHistory?
+  review              Review?
+  virtualHostSession     VirtualHostSession?
+  conversationTurns      VirtualHostConversationTurn[]
+  voiceSessions          VirtualHostVoiceSession[]
+  conversationHistory    ConversationHistory[]
 
   @@index([callerId, createdAt(sort: Desc)])
   @@index([calleeId, createdAt(sort: Desc)])
@@ -688,6 +1414,149 @@ model CallConsent {
 
   @@unique([callId, userId])
   @@map("call_consents")
+}
+
+model GiftCatalogItem {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug           String            @unique @db.VarChar(64)
+  name           String            @db.VarChar(100)
+  icon           String            @db.VarChar(16)
+  category       GiftCategory
+  coinPrice      Int               @map("coin_price")
+  animationTier  GiftAnimationTier @map("animation_tier")
+  animationKey   String            @map("animation_key") @db.VarChar(64)
+  popularity     Int               @default(0)
+  sortOrder      Int               @default(0) @map("sort_order")
+  isEnabled      Boolean           @default(true) @map("is_enabled")
+  isFeatured     Boolean           @default(false) @map("is_featured")
+  isTrending     Boolean           @default(false) @map("is_trending")
+  isLimited      Boolean           @default(false) @map("is_limited")
+  seasonTag      String?           @map("season_tag") @db.VarChar(64)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  callGifts CallGift[]
+
+  @@index([isEnabled, sortOrder])
+  @@index([category, isEnabled])
+  @@map("gift_catalog")
+}
+
+model CallGift {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callId           String   @map("call_id") @db.Uuid
+  senderId         String   @map("sender_id") @db.Uuid
+  recipientId      String   @map("recipient_id") @db.Uuid
+  giftType         String   @map("gift_type") @db.VarChar(32)
+  catalogGiftId    String?  @map("catalog_gift_id") @db.Uuid
+  quantity         Int      @default(1)
+  coinUnits        BigInt   @map("coin_units")
+  hostEarningUnits BigInt   @map("host_earning_units")
+  platformFeeUnits BigInt   @map("platform_fee_units")
+  idempotencyKey   String   @unique @map("idempotency_key") @db.VarChar(128)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  call        Call             @relation(fields: [callId], references: [id], onDelete: Cascade)
+  sender      User             @relation("GiftSender", fields: [senderId], references: [id], onDelete: Restrict)
+  recipient   User             @relation("GiftRecipient", fields: [recipientId], references: [id], onDelete: Restrict)
+  catalogGift GiftCatalogItem? @relation(fields: [catalogGiftId], references: [id], onDelete: SetNull)
+
+  @@index([callId, createdAt(sort: Desc)])
+  @@index([senderId, createdAt(sort: Desc)])
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@map("call_gifts")
+}
+
+model CallHistory {
+  id                       String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callId                   String             @unique @map("call_id") @db.Uuid
+  callerId                 String             @map("caller_id") @db.Uuid
+  hostId                   String             @map("host_id") @db.Uuid
+  type                     CallHistoryType    @default(video)
+  status                   CallHistoryStatus  @default(ringing)
+  startedAt                DateTime?          @map("started_at") @db.Timestamptz(6)
+  answeredAt               DateTime?          @map("answered_at") @db.Timestamptz(6)
+  endedAt                  DateTime?          @map("ended_at") @db.Timestamptz(6)
+  durationSeconds          Int                @default(0) @map("duration_seconds")
+  coinsSpentUnits          BigInt             @default(0) @map("coins_spent_units")
+  hostEarningUnits         BigInt             @default(0) @map("host_earning_units")
+  platformCommissionUnits  BigInt             @default(0) @map("platform_commission_units")
+  endedBy                  CallHistoryEndedBy? @map("ended_by")
+  hostCallType             CallHostType?       @map("host_call_type")
+  createdAt                DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  call   Call @relation(fields: [callId], references: [id], onDelete: Cascade)
+  caller User @relation("CallHistoryCaller", fields: [callerId], references: [id], onDelete: Restrict)
+  host   User @relation("CallHistoryHost", fields: [hostId], references: [id], onDelete: Restrict)
+
+  @@index([callerId, createdAt(sort: Desc)])
+  @@index([hostId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("call_history")
+}
+
+model CallRoutingSettings {
+  id                      String   @id @default("default") @db.VarChar(32)
+  aiFallbackEnabled       Boolean  @default(true) @map("ai_fallback_enabled")
+  realHostTimeoutSeconds  Int      @default(20) @map("real_host_timeout_seconds")
+  preferredRegion         String?  @map("preferred_region") @db.VarChar(64)
+  preferredLanguage       String?  @map("preferred_language") @db.VarChar(16)
+  randomAiSelection       Boolean  @default(true) @map("random_ai_selection")
+  defaultAiHostId         String?  @map("default_ai_host_id") @db.Uuid
+  maxConcurrentAiSessions Int      @default(50) @map("max_concurrent_ai_sessions")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("call_routing_settings")
+}
+
+// =============================================================================
+// HOST REVIEWS
+// =============================================================================
+
+model Review {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callId     String   @unique @map("call_id") @db.Uuid
+  hostId     String   @map("host_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  rating     Int      @db.SmallInt
+  reviewText String?  @map("review_text")
+  isHidden   Boolean  @default(false) @map("is_hidden")
+  isReported Boolean  @default(false) @map("is_reported")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
+  host User @relation("ReviewHost", fields: [hostId], references: [id], onDelete: Restrict)
+  user User @relation("ReviewAuthor", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([hostId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([rating, createdAt(sort: Desc)])
+  @@index([isHidden, isReported])
+  @@map("reviews")
+}
+
+// =============================================================================
+// HOST FOLLOWS / FAVORITES
+// =============================================================================
+
+model HostFollower {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostId    String    @map("host_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  host User @relation("FollowedHost", fields: [hostId], references: [id], onDelete: Cascade)
+  user User @relation("FollowerUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hostId, userId])
+  @@index([hostId, deletedAt, createdAt(sort: Desc)])
+  @@index([userId, deletedAt, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("host_followers")
 }
 
 // =============================================================================
@@ -805,6 +1674,7 @@ model Report {
   assignedToId     String?           @map("assigned_to_id") @db.Uuid
   resolution       String?
   resolutionAction ResolutionAction? @map("resolution_action")
+  adminNote        String?           @map("admin_note")
   resolvedById     String?           @map("resolved_by_id") @db.Uuid
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -915,6 +1785,24 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+model AdminLog {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId      String   @map("admin_id") @db.Uuid
+  action       String   @db.VarChar(100)
+  targetUserId String?  @map("target_user_id") @db.Uuid
+  details      Json?
+  ipAddress    String?  @map("ip_address") @db.Inet
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  admin      User  @relation("AdminLogActor", fields: [adminId], references: [id], onDelete: Restrict)
+  targetUser User? @relation("AdminLogTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([adminId, createdAt(sort: Desc)])
+  @@index([targetUserId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("admin_logs")
+}
+
 model PlatformConfig {
   key         String   @id @db.VarChar(100)
   value       Json
@@ -926,6 +1814,40 @@ model PlatformConfig {
   updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@map("platform_config")
+}
+
+model LegalPolicy {
+  slug          String   @id @db.VarChar(50)
+  title         String   @db.VarChar(200)
+  content       String
+  version       String   @db.VarChar(20)
+  isPublished   Boolean  @default(true) @map("is_published")
+  publishedAt   DateTime @map("published_at") @db.Timestamptz(6)
+  publishedById String?  @map("published_by_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  publishedBy User?                 @relation("LegalPolicyPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  revisions   LegalPolicyRevision[]
+
+  @@map("legal_policies")
+}
+
+model LegalPolicyRevision {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug          String   @map("slug") @db.VarChar(50)
+  title         String   @db.VarChar(200)
+  content       String
+  version       String   @db.VarChar(20)
+  publishedAt   DateTime @map("published_at") @db.Timestamptz(6)
+  publishedById String?  @map("published_by_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  policy      LegalPolicy @relation(fields: [slug], references: [slug], onDelete: Cascade)
+  publishedBy User?       @relation("LegalPolicyRevisionPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+
+  @@index([slug, publishedAt(sort: Desc)])
+  @@map("legal_policy_revisions")
 }
 
 model GrievanceTicket {
@@ -977,6 +1899,7 @@ model Payment {
   user          User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
   package       CoinPackage?          @relation(fields: [packageId], references: [id], onDelete: SetNull)
   webhookEvents PaymentWebhookEvent[]
+  promoUsage    PromoUsage?
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, createdAt])
@@ -1021,4 +1944,349 @@ model DeviceToken {
   @@unique([userId, tokenHash])
   @@index([userId, isActive])
   @@map("device_tokens")
+}
+
+model Notification {
+  id            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String                    @map("user_id") @db.Uuid
+  type          NotificationType
+  title         String                    @db.VarChar(200)
+  message       String
+  referenceType NotificationReferenceType? @map("reference_type")
+  referenceId   String?                   @map("reference_id") @db.Uuid
+  image         String?
+  priority      NotificationPriority      @default(normal)
+  metadata      Json?
+  isRead        Boolean                   @default(false) @map("is_read")
+  clicked       Boolean                   @default(false)
+  expiresAt     DateTime?                 @map("expires_at") @db.Timestamptz(6)
+  createdAt     DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, referenceType, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model NotificationSettings {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @unique @map("user_id") @db.Uuid
+  incomingCalls  Boolean  @default(true) @map("incoming_calls")
+  recharge       Boolean  @default(true)
+  referral       Boolean  @default(true)
+  promotions     Boolean  @default(true)
+  withdrawals    Boolean  @default(true)
+  kyc            Boolean  @default(true)
+  reviews        Boolean  @default(true)
+  announcements  Boolean  @default(true)
+  browserPush    Boolean  @default(true) @map("browser_push")
+  sound          Boolean  @default(true)
+  vibration      Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+model NotificationBroadcast {
+  id              String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId         String                      @map("admin_id") @db.Uuid
+  title           String                      @db.VarChar(200)
+  message         String
+  target          String                      @db.VarChar(30)
+  priority        NotificationPriority        @default(normal)
+  status          NotificationBroadcastStatus @default(draft)
+  scheduledAt     DateTime?                   @map("scheduled_at") @db.Timestamptz(6)
+  sentAt          DateTime?                   @map("sent_at") @db.Timestamptz(6)
+  recipientCount  Int                         @default(0) @map("recipient_count")
+  readCount       Int                         @default(0) @map("read_count")
+  clickCount      Int                         @default(0) @map("click_count")
+  createdAt       DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  admin User @relation("BroadcastAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+
+  @@index([status, scheduledAt])
+  @@index([adminId, createdAt(sort: Desc)])
+  @@map("notification_broadcasts")
+}
+
+// =============================================================================
+// EMAIL & SMS COMMUNICATIONS
+// =============================================================================
+
+model CommunicationSettings {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  marketingEmails     Boolean  @default(true) @map("marketing_emails")
+  transactionalEmails Boolean  @default(true) @map("transactional_emails")
+  marketingSms        Boolean  @default(true) @map("marketing_sms")
+  transactionalSms    Boolean  @default(true) @map("transactional_sms")
+  sms                 Boolean  @default(true)
+  promotionEmails     Boolean  @default(true) @map("promotion_emails")
+  promotionSms        Boolean  @default(true) @map("promotion_sms")
+  referralUpdates     Boolean  @default(true) @map("referral_updates")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("communication_settings")
+}
+
+model CommunicationTemplate {
+  id        String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type      String               @db.VarChar(50)
+  channel   CommunicationChannel
+  title     String               @db.VarChar(200)
+  subject   String?              @db.VarChar(300)
+  body      String
+  htmlBody  String?              @map("html_body")
+  variables Json?
+  isActive  Boolean              @default(true) @map("is_active")
+  createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  logs CommunicationLog[]
+
+  @@unique([type, channel])
+  @@index([channel, isActive])
+  @@map("communication_templates")
+}
+
+model CommunicationCampaign {
+  id              String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId         String                      @map("admin_id") @db.Uuid
+  channel         CommunicationChannel
+  title           String                      @db.VarChar(200)
+  subject         String?                     @db.VarChar(300)
+  body            String
+  htmlBody        String?                     @map("html_body")
+  audience        CommunicationAudience
+  targetUserId    String?                     @map("target_user_id") @db.Uuid
+  status          CommunicationCampaignStatus @default(draft)
+  scheduledAt     DateTime?                   @map("scheduled_at") @db.Timestamptz(6)
+  sentAt          DateTime?                   @map("sent_at") @db.Timestamptz(6)
+  recipientCount  Int                         @default(0) @map("recipient_count")
+  deliveredCount  Int                         @default(0) @map("delivered_count")
+  openedCount     Int                         @default(0) @map("opened_count")
+  clickedCount    Int                         @default(0) @map("clicked_count")
+  failedCount     Int                         @default(0) @map("failed_count")
+  bouncedCount    Int                         @default(0) @map("bounced_count")
+  createdAt       DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  admin User               @relation("CommunicationCampaignAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+  logs  CommunicationLog[]
+  queue CommunicationQueueItem[]
+
+  @@index([status, scheduledAt])
+  @@index([adminId, createdAt(sort: Desc)])
+  @@index([channel, status])
+  @@map("communication_campaigns")
+}
+
+model CommunicationQueueItem {
+  id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String?                  @map("user_id") @db.Uuid
+  campaignId      String?                  @map("campaign_id") @db.Uuid
+  channel         CommunicationChannel
+  eventType       CommunicationEventType   @map("event_type")
+  recipient       String                   @db.VarChar(255)
+  subject         String?                  @db.VarChar(300)
+  body            String
+  htmlBody        String?                  @map("html_body")
+  templateKey     String                   @map("template_key") @db.VarChar(50)
+  templateData    Json?                    @map("template_data")
+  status          CommunicationQueueStatus @default(pending)
+  idempotencyKey  String                   @unique @map("idempotency_key") @db.VarChar(128)
+  attempts        Int                      @default(0) @db.SmallInt
+  maxAttempts     Int                      @default(5) @map("max_attempts") @db.SmallInt
+  nextRetryAt     DateTime?                @map("next_retry_at") @db.Timestamptz(6)
+  lastError       String?                  @map("last_error")
+  referenceId     String?                  @map("reference_id") @db.Uuid
+  referenceType   String?                  @map("reference_type") @db.VarChar(30)
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
+  processedAt     DateTime?                @map("processed_at") @db.Timestamptz(6)
+
+  campaign CommunicationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  log      CommunicationLog?
+
+  @@index([status, nextRetryAt, createdAt])
+  @@index([userId, eventType, createdAt(sort: Desc)])
+  @@index([campaignId])
+  @@map("communication_queue")
+}
+
+model CommunicationLog {
+  id               String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String?                @map("user_id") @db.Uuid
+  campaignId       String?                @map("campaign_id") @db.Uuid
+  queueItemId      String?                @unique @map("queue_item_id") @db.Uuid
+  templateId       String?                @map("template_id") @db.Uuid
+  channel          CommunicationChannel
+  eventType        CommunicationEventType @map("event_type")
+  template         String?                @db.VarChar(50)
+  recipient        String                 @db.VarChar(255)
+  subject          String?                @db.VarChar(300)
+  status           CommunicationLogStatus @default(queued)
+  provider         String?                @db.VarChar(30)
+  providerId       String?                @map("provider_id") @db.VarChar(128)
+  providerResponse Json?                  @map("provider_response")
+  retryCount       Int                    @default(0) @map("retry_count") @db.SmallInt
+  openedAt         DateTime?              @map("opened_at") @db.Timestamptz(6)
+  clickedAt        DateTime?              @map("clicked_at") @db.Timestamptz(6)
+  deliveredAt      DateTime?              @map("delivered_at") @db.Timestamptz(6)
+  failedAt         DateTime?              @map("failed_at") @db.Timestamptz(6)
+  bounceReason     String?                @map("bounce_reason")
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user      User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  campaign  CommunicationCampaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  queueItem CommunicationQueueItem?  @relation(fields: [queueItemId], references: [id], onDelete: SetNull)
+  templateRef CommunicationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([channel, status, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([campaignId, status])
+  @@index([eventType, createdAt(sort: Desc)])
+  @@map("communication_logs")
+}
+
+// =============================================================================
+// ANTI-FRAUD & RISK DETECTION
+// =============================================================================
+
+model RiskUserProfile {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String    @unique @map("user_id") @db.Uuid
+  aggregateScore        Int       @default(0) @map("aggregate_score") @db.SmallInt
+  riskLevel             RiskLevel @default(low) @map("risk_level")
+  freezeWithdrawals     Boolean   @default(false) @map("freeze_withdrawals")
+  freezeReferralRewards Boolean   @default(false) @map("freeze_referral_rewards")
+  freezeCouponRedemption Boolean  @default(false) @map("freeze_coupon_redemption")
+  requireReKyc          Boolean   @default(false) @map("require_re_kyc")
+  lastEventAt           DateTime? @map("last_event_at") @db.Timestamptz(6)
+  lastCountry           String?   @map("last_country") @db.VarChar(2)
+  lastIp                String?   @map("last_ip") @db.Inet
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([riskLevel, aggregateScore(sort: Desc)])
+  @@map("risk_user_profiles")
+}
+
+model RiskEvent {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  eventType   RiskEventType @map("event_type")
+  riskScore   Int           @map("risk_score") @db.SmallInt
+  riskLevel   RiskLevel     @map("risk_level")
+  reason      String        @db.VarChar(500)
+  ruleId      String?       @map("rule_id") @db.VarChar(50)
+  metadata    Json?
+  ipAddress   String?       @map("ip_address") @db.Inet
+  deviceId    String?       @map("device_id") @db.VarChar(64)
+  fingerprint String?       @db.VarChar(64)
+  country     String?       @db.VarChar(2)
+  city        String?       @db.VarChar(100)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([riskLevel, createdAt(sort: Desc)])
+  @@index([eventType, createdAt(sort: Desc)])
+  @@index([fingerprint, createdAt(sort: Desc)])
+  @@index([ipAddress, createdAt(sort: Desc)])
+  @@map("risk_events")
+}
+
+model FraudFlag {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String          @map("user_id") @db.Uuid
+  type         FraudFlagType
+  status       FraudFlagStatus @default(open)
+  riskScore    Int             @default(0) @map("risk_score") @db.SmallInt
+  ruleId       String?         @map("rule_id") @db.VarChar(50)
+  reason       String?
+  adminNote    String?         @map("admin_note")
+  resolvedAt   DateTime?       @map("resolved_at") @db.Timestamptz(6)
+  resolvedById String?           @map("resolved_by_id") @db.Uuid
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([type, status])
+  @@map("fraud_flags")
+}
+
+model DeviceFingerprintRecord {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  fingerprintHash String   @map("fingerprint_hash") @db.VarChar(64)
+  platform        String?  @db.VarChar(20)
+  os              String?  @db.VarChar(50)
+  timezone        String?  @db.VarChar(50)
+  language        String?  @db.VarChar(20)
+  resolution      String?  @db.VarChar(20)
+  browser         String?  @db.VarChar(50)
+  lastIp          String?  @map("last_ip") @db.Inet
+  lastCountry     String?  @map("last_country") @db.VarChar(2)
+  lastCity        String?  @map("last_city") @db.VarChar(100)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprintHash])
+  @@index([fingerprintHash])
+  @@index([lastIp])
+  @@map("device_fingerprint_records")
+}
+
+model RiskDecisionAudit {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  adminId   String?  @map("admin_id") @db.Uuid
+  action    String   @db.VarChar(100)
+  ruleId    String?  @map("rule_id") @db.VarChar(50)
+  riskScore Int?     @map("risk_score") @db.SmallInt
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation("RiskAuditUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([adminId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("risk_decision_audits")
+}
+
+model RiskQueueItem {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String?         @map("user_id") @db.Uuid
+  eventType      RiskEventType   @map("event_type")
+  payload        Json
+  status         RiskQueueStatus @default(pending)
+  idempotencyKey String          @unique @map("idempotency_key") @db.VarChar(128)
+  attempts       Int             @default(0) @db.SmallInt
+  lastError      String?         @map("last_error")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  processedAt    DateTime?       @map("processed_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt])
+  @@map("risk_queue")
 }

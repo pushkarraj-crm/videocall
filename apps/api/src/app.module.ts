@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -9,11 +10,17 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './database/prisma.module';
 import { FirebaseModule } from './integrations/firebase/firebase.module';
+import { RedisModule } from './integrations/redis/redis.module';
+import { AiHostAssetsModule } from './integrations/ai-host-assets/ai-host-assets.module';
+import { StorageModule } from './integrations/storage/storage.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { HealthModule } from './modules/health/health.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CommunicationsModule } from './modules/communications/communications.module';
+import { RiskModule } from './modules/risk/risk.module';
+import { CallHistoryModule } from './modules/call-history/call-history.module';
 import { CallsModule } from './modules/calls/calls.module';
 import { HostsModule } from './modules/hosts/hosts.module';
 import { KycModule } from './modules/kyc/kyc.module';
@@ -22,8 +29,13 @@ import { ModerationModule } from './modules/moderation/moderation.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
+import { PromotionsModule } from './modules/promotions/promotions.module';
 import { ReferralsModule } from './modules/referrals/referrals.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { FollowsModule } from './modules/follows/follows.module';
+import { GiftsModule } from './modules/gifts/gifts.module';
+import { VirtualHostsModule } from './modules/virtual-hosts/virtual-hosts.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 import { UsersModule } from './modules/users/users.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 
@@ -47,10 +59,27 @@ import { WalletModule } from './modules/wallet/wallet.module';
       },
     }),
     ThrottlerModule.forRoot([
-      { name: 'default', ttl: 60_000, limit: 100 },
-      { name: 'auth', ttl: 60_000, limit: 20 },
-      { name: 'payments', ttl: 60_000, limit: 30 },
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: process.env.NODE_ENV === 'production' ? 100 : 5000,
+      },
+      {
+        name: 'auth',
+        ttl: 60_000,
+        limit: process.env.NODE_ENV === 'production' ? 20 : 500,
+      },
+      {
+        name: 'payments',
+        ttl: 60_000,
+        limit: process.env.NODE_ENV === 'production' ? 30 : 500,
+      },
+      { name: 'calls', ttl: 60_000, limit: 600 },
     ]),
+    ...(process.env.ENABLE_CRON_JOBS !== 'false' ? [ScheduleModule.forRoot()] : []),
+    RedisModule,
+    StorageModule,
+    AiHostAssetsModule,
     PrismaModule,
     FirebaseModule,
     AuthModule,
@@ -59,12 +88,20 @@ import { WalletModule } from './modules/wallet/wallet.module';
     WalletModule,
     PaymentsModule,
     ReferralsModule,
+    PromotionsModule,
     HostsModule,
     KycModule,
     CallsModule,
+    CallHistoryModule,
     MessagingModule,
     NotificationsModule,
+    CommunicationsModule,
+    RiskModule,
     ReportsModule,
+    ReviewsModule,
+    FollowsModule,
+    GiftsModule,
+    VirtualHostsModule,
     ModerationModule,
     AdminModule,
     ComplianceModule,

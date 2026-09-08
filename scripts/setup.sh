@@ -34,6 +34,9 @@ npm run db:constraints -w @platform/api
 echo "==> Seeding database..."
 npm run db:seed -w @platform/api
 
+echo "==> Syncing migration history for existing databases..."
+bash scripts/db-baseline.sh
+
 echo ""
 echo "Setup complete."
 echo "  API:  http://localhost:3001/v1"

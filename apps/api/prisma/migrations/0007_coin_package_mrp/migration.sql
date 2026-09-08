@@ -1,0 +1,2 @@
+ALTER TABLE "coin_packages" ADD COLUMN IF NOT EXISTS "mrp_inr" DECIMAL(12, 2);
+ALTER TABLE "coin_packages" ADD COLUMN IF NOT EXISTS "is_best_value" BOOLEAN NOT NULL DEFAULT false;

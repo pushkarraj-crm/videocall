@@ -1,6 +1,8 @@
 node_modules/
 .env
 .env.local
+.env.production
+.env.staging
 .env.*.local
 dist/
 tsconfig.build.tsbuildinfo
@@ -9,3 +11,4 @@ tsconfig.build.tsbuildinfo
 .DS_Store
 coverage/
 .turbo/
+uploads/

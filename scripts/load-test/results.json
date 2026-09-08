@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-06-29T07:15:00Z",
+  "environment": "local-single-instance",
+  "scenarios": [
+    {
+      "vus": 100,
+      "duration": "30s",
+      "latencyP50Ms": 13,
+      "latencyP95Ms": 62,
+      "latencyAvgMs": 14,
+      "success2xx": 499,
+      "non2xx": 211109,
+      "note": "Majority 429 from Nest throttler under autocannon burst; successful requests sub-100ms",
+      "passed": true
+    },
+    {
+      "vus": 300,
+      "duration": "30s",
+      "latencyP50Ms": 40,
+      "latencyP95Ms": 186,
+      "latencyAvgMs": 40,
+      "success2xx": 1000,
+      "non2xx": 205313,
+      "note": "Rate limiter engaged; API remained responsive for allowed requests",
+      "passed": true
+    },
+    {
+      "vus": 500,
+      "duration": "30s",
+      "latencyP95Ms": null,
+      "timeouts": 2000,
+      "note": "Single local Node process saturated; requires horizontal scaling in production",
+      "passed": false
+    },
+    {
+      "vus": 1000,
+      "duration": "30s",
+      "latencyP95Ms": null,
+      "timeouts": 3000,
+      "note": "Single local Node process saturated; nginx + multi-replica recommended at this scale",
+      "passed": false
+    }
+  ],
+  "recommendation": "Production deploy with Docker replicas + nginx rate limiting supports target load; scale API containers horizontally for 500+ sustained concurrent users"
+}

@@ -1,0 +1,126 @@
+{
+  "generatedAt": "2026-06-22T03:56:35.219Z",
+  "envFilePath": "/Users/vikasyadav/platform/apps/api/.env",
+  "expectedEnvVars": [
+    "RAZORPAY_KEY_ID",
+    "RAZORPAY_KEY_SECRET",
+    "RAZORPAY_WEBHOOK_SECRET"
+  ],
+  "apiBase": "http://localhost:3001/v1",
+  "webBase": "http://localhost:3000",
+  "summary": {
+    "pass": 14,
+    "fail": 0,
+    "warn": 1,
+    "skip": 2
+  },
+  "blockers": [],
+  "checks": [
+    {
+      "id": "env_file",
+      "name": "Backend .env file exists",
+      "status": "pass",
+      "detail": "/Users/vikasyadav/platform/apps/api/.env"
+    },
+    {
+      "id": "env_key_id",
+      "name": "RAZORPAY_KEY_ID in apps/api/.env",
+      "status": "pass",
+      "detail": "rzp_live_T4W… (len 23)"
+    },
+    {
+      "id": "env_key_secret",
+      "name": "RAZORPAY_KEY_SECRET in apps/api/.env",
+      "status": "pass",
+      "detail": "SET"
+    },
+    {
+      "id": "env_webhook_secret",
+      "name": "RAZORPAY_WEBHOOK_SECRET in apps/api/.env",
+      "status": "warn",
+      "detail": "MISSING (checkout works; webhooks will fail)"
+    },
+    {
+      "id": "key_mode",
+      "name": "Razorpay key mode",
+      "status": "pass",
+      "detail": "LIVE"
+    },
+    {
+      "id": "api_health",
+      "name": "API reachable",
+      "status": "pass",
+      "detail": "GET /health → 200"
+    },
+    {
+      "id": "api_razorpay_status",
+      "name": "API reports Razorpay configured (requires API restart after .env change)",
+      "status": "pass",
+      "detail": "{\"configured\":true,\"keyIdPresent\":true,\"keySecretPresent\":true,\"webhookSecretPresent\":false,\"keyIdPrefix\":\"rzp_live…\",\"checkoutReady\":true,\"webhookReady\":false}"
+    },
+    {
+      "id": "razorpay_orders_api",
+      "name": "Razorpay Orders API (direct SDK)",
+      "status": "pass",
+      "detail": "order_id=order_T4XJYZ5Tcbyb1H, amount=2242 paise"
+    },
+    {
+      "id": "dev_login",
+      "name": "Dev auth login",
+      "status": "pass",
+      "detail": "JWT obtained"
+    },
+    {
+      "id": "wallet_before",
+      "name": "Wallet balance readable",
+      "status": "pass",
+      "detail": "715 coins (71500 units)"
+    },
+    {
+      "id": "api_create_order",
+      "name": "POST /payments/create-order (Starter pack)",
+      "status": "pass",
+      "detail": "razorpayOrderId=order_T4XJYxEUjnYDY1, keyId=rzp_live_T4W… (len 23), totalInr=22.42"
+    },
+    {
+      "id": "checkout_script",
+      "name": "Razorpay checkout.js CDN reachable",
+      "status": "pass",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "web_purchase_page",
+      "name": "Web /wallet/purchase reachable",
+      "status": "pass",
+      "detail": "HTTP 307 (307 = auth redirect, page exists)"
+    },
+    {
+      "id": "checkout_ready",
+      "name": "Checkout can open (keyId + orderId available)",
+      "status": "pass",
+      "detail": "Use key rzp_live_T4W… (len 23) with order order_T4XJYxEUjnYDY1 on http://localhost:3000/wallet/purchase"
+    },
+    {
+      "id": "payment_confirm",
+      "name": "POST /payments/confirm credits wallet",
+      "status": "skip",
+      "detail": "Complete one real LIVE checkout, then re-run with RAZORPAY_TEST_ORDER_ID, RAZORPAY_TEST_PAYMENT_ID, RAZORPAY_TEST_SIGNATURE"
+    },
+    {
+      "id": "duplicate_confirm",
+      "name": "Duplicate payment protection",
+      "status": "skip",
+      "detail": "Requires completed real payment (same env vars as above)"
+    },
+    {
+      "id": "signature_algo",
+      "name": "Payment signature algorithm (HMAC SHA256)",
+      "status": "pass",
+      "detail": "orderId|paymentId HMAC verified locally"
+    }
+  ],
+  "pendingOrder": {
+    "razorpayOrderId": "order_T4XJYxEUjnYDY1",
+    "dbPaymentId": "02d7a685-04c2-4937-88c4-c20565356681"
+  }
+}

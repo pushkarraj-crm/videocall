@@ -10,16 +10,20 @@
     "start:dev": "nest start --watch",
     "prestart:prod": "nest build",
     "start:prod": "node dist/main.js",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "start:worker": "node dist/worker.js",
+    "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:validate": "prisma validate",
-    "db:constraints": "prisma db execute --file prisma/migrations/0001_init_extensions_and_constraints/migration.sql"
+    "db:constraints": "prisma db execute --schema prisma/schema.prisma --file prisma/migrations/0001_init_extensions_and_constraints/migration.sql",
+    "db:baseline": "prisma migrate resolve --applied 0000_init_schema && prisma migrate resolve --applied 0001_init_extensions_and_constraints",
+    "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.12",
@@ -36,7 +40,9 @@
     "compression": "^1.8.0",
     "firebase-admin": "^13.4.0",
     "helmet": "^8.1.0",
+    "ioredis": "^5.11.1",
     "nestjs-pino": "^4.4.0",
+    "nodemailer": "^9.0.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pino-http": "^10.4.0",
@@ -46,18 +52,25 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@nestjs/cli": "^11.0.6",
     "@nestjs/schematics": "^11.0.5",
     "@nestjs/testing": "^11.0.12",
     "@types/compression": "^1.7.5",
     "@types/express": "^5.0.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.15.3",
+    "@types/nodemailer": "^8.0.1",
     "@types/passport-jwt": "^4.0.1",
     "@types/uuid": "^10.0.0",
+    "eslint": "^10.5.0",
+    "jest": "^30.4.2",
     "pino-pretty": "^13.0.0",
     "prisma": "^6.9.0",
+    "ts-jest": "^29.4.11",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.61.1"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

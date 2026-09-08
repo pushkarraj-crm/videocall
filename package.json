@@ -17,10 +17,29 @@
     "db:push": "npm run db:push -w @platform/api",
     "db:seed": "npm run db:seed -w @platform/api",
     "db:migrate": "npm run db:migrate -w @platform/api",
-    "db:studio": "npm run db:studio -w @platform/api"
+    "db:studio": "npm run db:studio -w @platform/api",
+    "db:constraints": "npm run db:constraints -w @platform/api",
+    "db:baseline": "npm run db:baseline -w @platform/api",
+    "db:deploy": "npm run db:deploy -w @platform/api",
+    "test": "npm test -w @platform/api",
+    "lint": "npm run lint -w @platform/api && npm run lint -w @platform/web",
+    "docker:prod:build": "docker compose -f docker-compose.prod.yml build",
+    "docker:prod:up": "docker compose -f docker-compose.prod.yml up -d",
+    "docker:staging:up": "docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml up -d",
+    "prod:migrate": "bash scripts/production/migrate.sh",
+    "prod:deploy": "bash scripts/production/deploy.sh",
+    "prod:verify": "npx tsx scripts/production/verify-production.ts",
+    "prod:verify:env": "npx tsx scripts/production/verify-env.ts --file .env.production.example",
+    "prod:verify:docker": "npx tsx scripts/production/verify-docker.ts",
+    "prod:verify:nginx": "npx tsx scripts/production/verify-nginx.ts",
+    "prod:verify:pm2": "npx tsx scripts/production/verify-pm2.ts",
+    "prod:ssl": "bash scripts/production/init-letsencrypt.sh",
+    "prod:backup": "bash scripts/production/backup-postgres.sh && bash scripts/production/backup-assets.sh",
+    "load-test": "bash scripts/load-test/run-load-test.sh"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "playwright": "^1.49.1"
   },
   "dependencies": {
     "class-transformer": "^0.5.1",

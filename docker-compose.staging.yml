@@ -1,0 +1,24 @@
+# Staging overlay — use with: docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml up -d
+services:
+  api:
+    env_file:
+      - .env.staging
+    environment:
+      SENTRY_ENVIRONMENT: staging
+
+  worker:
+    env_file:
+      - .env.staging
+    environment:
+      SENTRY_ENVIRONMENT: staging
+
+  web:
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.staging.example.com/v1}
+
+  nginx:
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME:-staging.example.com}
+      API_DOMAIN: ${API_DOMAIN:-api.staging.example.com}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:-admin.staging.example.com}

@@ -25,11 +25,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
+  async validate(payload: JwtPayload & { iat?: number }): Promise<AuthenticatedUser> {
     const user = await this.usersService.findById(payload.sub);
 
     if (!user || user.deletedAt) {
       throw new BusinessException('User not found', 401, 'USER_NOT_FOUND');
+    }
+
+    if (user.sessionRevokedAt && payload.iat) {
+      const issuedAtMs = payload.iat * 1000;
+      if (issuedAtMs < user.sessionRevokedAt.getTime()) {
+        throw new BusinessException('Session expired. Please sign in again.', 401, 'SESSION_REVOKED');
+      }
     }
 
     const roles = await this.usersService.getUserRoles(user.id);

@@ -2,9 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentStatus, WalletTransactionType } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { coinsToUnits } from '../../common/constants/coins';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { PrismaService } from '../../database/prisma.service';
 import { RazorpayService } from '../../integrations/razorpay/razorpay.service';
+import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
 import { ReferralsService } from '../referrals/referrals.service';
 import { WalletService } from '../wallet/wallet.service';
 
@@ -16,6 +18,7 @@ export class PaymentsService {
     private readonly wallet: WalletService,
     private readonly referrals: ReferralsService,
     private readonly config: ConfigService,
+    private readonly notifications: NotificationDispatcherService,
   ) {}
 
   async getPackages() {
@@ -26,69 +29,110 @@ export class PaymentsService {
         id: true,
         name: true,
         priceInr: true,
+        mrpInr: true,
         coinUnits: true,
         bonusUnits: true,
+        isBestValue: true,
+        isMostPopular: true,
+        isLimitedOffer: true,
         sortOrder: true,
       },
     });
 
-    return packages.map((pkg) => ({
-      id: pkg.id,
-      name: pkg.name,
-      priceInr: pkg.priceInr.toString(),
-      coinUnits: pkg.coinUnits.toString(),
-      bonusUnits: pkg.bonusUnits.toString(),
-      totalCoins: Number(pkg.coinUnits + pkg.bonusUnits) / 100,
-      bonusPercent:
-        pkg.coinUnits > 0n
-          ? Math.round((Number(pkg.bonusUnits) / Number(pkg.coinUnits)) * 100)
-          : 0,
-      sortOrder: pkg.sortOrder,
-    }));
+    return packages.map((pkg) => {
+      const baseCoins = Number(pkg.coinUnits) / 100;
+      const bonusCoins = Number(pkg.bonusUnits) / 100;
+      const totalCoins = baseCoins + bonusCoins;
+      const price = Number(pkg.priceInr);
+      const mrp = pkg.mrpInr ? Number(pkg.mrpInr) : price;
+
+      return {
+        id: pkg.id,
+        name: pkg.name,
+        priceInr: pkg.priceInr.toString(),
+        mrpInr: mrp.toString(),
+        coinUnits: pkg.coinUnits.toString(),
+        bonusUnits: pkg.bonusUnits.toString(),
+        baseCoins,
+        bonusCoins,
+        totalCoins,
+        discountPercent: mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0,
+        isBestValue: pkg.isBestValue,
+        isMostPopular: pkg.isMostPopular,
+        isLimitedOffer: pkg.isLimitedOffer,
+        sortOrder: pkg.sortOrder,
+      };
+    });
   }
 
-  async createOrder(userId: string, packageId: string) {
-    const pkg = await this.prisma.coinPackage.findFirst({
-      where: { id: packageId, isActive: true, deletedAt: null },
-    });
-
-    if (!pkg) {
-      throw new BusinessException('Package not found', 404, 'PACKAGE_NOT_FOUND');
+  async createOrder(userId: string, packageId?: string, customCoins?: number) {
+    if (!packageId && !customCoins) {
+      throw new BusinessException('Package or custom amount required', 400, 'INVALID_ORDER');
     }
 
-    const gstRate = this.config.get<number>('GST_RATE', 18);
-    const gstInr = Number(pkg.priceInr) * (gstRate / 100);
-    const totalInr = Number(pkg.priceInr) + gstInr;
-    const idempotencyKey = `order:${userId}:${packageId}:${Date.now()}`;
+    if (packageId && customCoins) {
+      throw new BusinessException('Specify package or custom amount, not both', 400, 'INVALID_ORDER');
+    }
+
+    let priceInr: number;
+    let coinUnitsCredited: bigint;
+    let resolvedPackageId: string | null = packageId ?? null;
+
+    if (packageId) {
+      const pkg = await this.prisma.coinPackage.findFirst({
+        where: { id: packageId, isActive: true, deletedAt: null },
+      });
+
+      if (!pkg) {
+        throw new BusinessException('Package not found', 404, 'PACKAGE_NOT_FOUND');
+      }
+
+      priceInr = Number(pkg.priceInr);
+      coinUnitsCredited = pkg.coinUnits + pkg.bonusUnits;
+    } else {
+      priceInr = customCoins!;
+      coinUnitsCredited = coinsToUnits(customCoins!);
+      resolvedPackageId = null;
+    }
+
+    const gstInr = 0;
+    const totalInr = priceInr;
+    const idempotencyKey = `order:${userId}:${resolvedPackageId ?? `custom:${customCoins}`}:${Date.now()}`;
 
     const order = await this.razorpay.createOrder({
       amountInr: totalInr,
       receipt: `rcpt_${uuidv4().replace(/-/g, '').slice(0, 20)}`,
-      notes: { userId, packageId },
+      notes: {
+        userId,
+        packageId: resolvedPackageId ?? 'custom',
+        customCoins: customCoins?.toString() ?? '',
+      },
     });
 
     const payment = await this.prisma.payment.create({
       data: {
         userId,
-        packageId,
+        packageId: resolvedPackageId,
         razorpayOrderId: order.id,
-        amountInr: pkg.priceInr,
+        amountInr: priceInr,
         gstInr,
         totalInr,
-        coinUnitsCredited: pkg.coinUnits + pkg.bonusUnits,
+        coinUnitsCredited,
         status: PaymentStatus.created,
         idempotencyKey,
+        metadata: customCoins ? { customCoins } : undefined,
       },
     });
 
     return {
       paymentId: payment.id,
       razorpayOrderId: order.id,
-      amountInr: pkg.priceInr,
+      amountInr: priceInr,
       gstInr,
       totalInr,
       currency: 'INR',
       keyId: this.config.get('RAZORPAY_KEY_ID'),
+      coinUnitsCredited: coinUnitsCredited.toString(),
     };
   }
 
@@ -102,8 +146,31 @@ export class PaymentsService {
       throw new BusinessException('Invalid payment signature', 400, 'INVALID_SIGNATURE');
     }
 
+    const payment = await this.fulfillPayment(orderId, paymentId, signature, userId);
+    const wallet = await this.wallet.getWalletSummary(userId);
+
+    return {
+      payment: {
+        id: payment.id,
+        status: payment.status,
+        coinUnitsCredited: payment.coinUnitsCredited.toString(),
+        paidAt: payment.paidAt,
+      },
+      wallet,
+    };
+  }
+
+  private async fulfillPayment(
+    orderId: string,
+    razorpayPaymentId: string,
+    signature: string | null,
+    userId?: string,
+  ) {
     const payment = await this.prisma.payment.findFirst({
-      where: { razorpayOrderId: orderId, userId },
+      where: {
+        razorpayOrderId: orderId,
+        ...(userId ? { userId } : {}),
+      },
     });
 
     if (!payment) {
@@ -114,28 +181,56 @@ export class PaymentsService {
       return payment;
     }
 
+    const duplicatePayment = await this.prisma.payment.findFirst({
+      where: {
+        razorpayPaymentId,
+        NOT: { id: payment.id },
+        status: PaymentStatus.paid,
+      },
+    });
+
+    if (duplicatePayment) {
+      throw new BusinessException(
+        'Payment already processed',
+        409,
+        'DUPLICATE_PAYMENT',
+      );
+    }
+
+    await this.wallet.ensureWallet(payment.userId);
+    await this.wallet.creditWallet({
+      userId: payment.userId,
+      amountUnits: payment.coinUnitsCredited,
+      type: WalletTransactionType.payment_credit,
+      referenceType: 'payment',
+      referenceId: payment.id,
+      idempotencyKey: `payment:credit:${payment.id}`,
+      description: `Recharge ₹${payment.amountInr}`,
+    });
+
     const updated = await this.prisma.payment.update({
-      where: { id: payment.id },
+      where: { id: payment.id, status: PaymentStatus.created },
       data: {
         status: PaymentStatus.paid,
-        razorpayPaymentId: paymentId,
+        razorpayPaymentId,
         razorpaySignature: signature,
         paidAt: new Date(),
         invoiceNumber: `INV-${Date.now()}`,
       },
     });
 
-    await this.wallet.creditWallet({
-      userId,
-      amountUnits: updated.coinUnitsCredited,
-      type: WalletTransactionType.recharge,
-      referenceType: 'payment',
-      referenceId: updated.id,
-      idempotencyKey: `payment:credit:${updated.id}`,
-      description: 'Coin recharge',
-    });
+    await this.referrals.qualifyReferral(payment.userId, 'first_recharge');
 
-    await this.referrals.qualifyReferral(userId, 'first_recharge');
+    const coins = Number(updated.coinUnitsCredited) / 100;
+    this.notifications.dispatchSafe(
+      this.notifications.onRechargeSuccess(
+        updated.id,
+        updated.userId,
+        String(updated.amountInr),
+        coins,
+      ),
+      `recharge_success/${updated.id}`,
+    );
 
     return updated;
   }
@@ -179,11 +274,25 @@ export class PaymentsService {
       });
 
       if (payment && payment.status !== PaymentStatus.paid) {
-        await this.confirmPayment(
-          payment.userId,
-          entity.order_id,
-          entity.id,
-          signature,
+        await this.fulfillPayment(entity.order_id, entity.id, null);
+      }
+    }
+
+    if (payload.event === 'payment.failed') {
+      const entity = payload.payload.payment.entity;
+      const payment = await this.prisma.payment.findFirst({
+        where: { razorpayOrderId: entity.order_id },
+      });
+
+      if (payment && payment.status !== PaymentStatus.paid) {
+        this.notifications.dispatchSafe(
+          this.notifications.onRechargeFailed(
+            payment.id,
+            payment.userId,
+            String(payment.amountInr),
+            'Payment was declined or timed out',
+          ),
+          `recharge_failed/${payment.id}`,
         );
       }
     }
@@ -196,19 +305,20 @@ export class PaymentsService {
     return { received: true };
   }
 
-  async getInvoices(userId: string) {
-    return this.prisma.payment.findMany({
-      where: { userId, status: PaymentStatus.paid },
-      orderBy: { paidAt: 'desc' },
-      select: {
-        id: true,
-        amountInr: true,
-        gstInr: true,
-        totalInr: true,
-        coinUnitsCredited: true,
-        invoiceNumber: true,
-        paidAt: true,
-      },
-    });
+  getRazorpayStatus() {
+    const keyId = this.config.get<string>('RAZORPAY_KEY_ID');
+    const keySecret = this.config.get<string>('RAZORPAY_KEY_SECRET');
+    const webhookSecret = this.config.get<string>('RAZORPAY_WEBHOOK_SECRET');
+
+    return {
+      configured: Boolean(keyId && keySecret),
+      keyIdPresent: Boolean(keyId),
+      keySecretPresent: Boolean(keySecret),
+      webhookSecretPresent: Boolean(webhookSecret),
+      keyIdPrefix: keyId ? `${keyId.slice(0, 8)}…` : null,
+      checkoutReady: Boolean(keyId && keySecret),
+      webhookReady: Boolean(webhookSecret),
+    };
   }
+
 }

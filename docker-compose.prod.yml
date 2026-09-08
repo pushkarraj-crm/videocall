@@ -1,0 +1,231 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-platform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${POSTGRES_DB:-platform}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-platform} -d ${POSTGRES_DB:-platform}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - platform
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - platform
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      ENABLE_CRON_JOBS: 'false'
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}?schema=public
+      STORAGE_LOCAL_PATH: /app/uploads
+    volumes:
+      - uploads:/app/uploads
+      - api_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/v1/health/ready']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - platform
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    command: ['node', 'dist/worker.js']
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      ENABLE_CRON_JOBS: 'true'
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}?schema=public
+      STORAGE_LOCAL_PATH: /app/uploads
+    volumes:
+      - uploads:/app/uploads
+      - worker_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - platform
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.example.com/v1}
+        NEXT_PUBLIC_ENABLE_DEV_AUTH: 'false'
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:-}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:-}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
+        NEXT_PUBLIC_ZEGO_APP_ID: ${NEXT_PUBLIC_ZEGO_APP_ID:-}
+        NEXT_PUBLIC_ZEGO_SERVER_URL: ${NEXT_PUBLIC_ZEGO_SERVER_URL:-}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    networks:
+      - platform
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME:-localhost}
+      API_DOMAIN: ${API_DOMAIN:-api.localhost}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:-admin.localhost}
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/conf.d/platform.conf.template:/etc/nginx/templates/platform.conf.template:ro
+      - ./infra/nginx/snippets:/etc/nginx/snippets:ro
+      - ./infra/nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - nginx_logs:/var/log/nginx
+      - uploads:/var/www/uploads:ro
+    entrypoint: ['/docker-entrypoint.sh']
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - platform
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles:
+      - ssl
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'
+    networks:
+      - platform
+
+  backup:
+    image: postgres:16-alpine
+    profiles:
+      - backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-platform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-platform}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      PGHOST: postgres
+    volumes:
+      - pgbackups:/backups
+      - uploads:/uploads:ro
+      - ./scripts/production/backup-postgres.sh:/backup-db.sh:ro
+      - ./scripts/production/backup-assets.sh:/backup-assets.sh:ro
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do /backup-db.sh && /backup-assets.sh; sleep 24h & wait $${!}; done'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - platform
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    profiles:
+      - monitoring
+    restart: unless-stopped
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - '9090:9090'
+    depends_on:
+      - api
+    networks:
+      - platform
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+  api_logs:
+  worker_logs:
+  nginx_logs:
+  certbot_www:
+  certbot_certs:
+  pgbackups:
+  promdata:
+
+networks:
+  platform:
+    driver: bridge

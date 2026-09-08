@@ -13,18 +13,41 @@ export class MessagingController {
     return this.messagingService.listConversations(user.id);
   }
 
+  @Get('unread-count')
+  unreadCount(@CurrentUser() user: AuthenticatedUser) {
+    return this.messagingService.getUnreadTotal(user.id);
+  }
+
+  @Get(':id')
+  getConversation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.messagingService.getConversation(id, user.id);
+  }
+
+  @Post(':id/read')
+  markAsRead(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.messagingService.markAsRead(id, user.id);
+  }
+
   @Get(':id/messages')
   getMessages(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('since') since?: string,
   ) {
     return this.messagingService.getMessages(
       id,
       user.id,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 50,
+      since,
     );
   }
 

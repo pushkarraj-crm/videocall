@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-typecheck-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d platform"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/platform?schema=public
+      JWT_SECRET: ci-test-secret-min-32-characters-long
+      JWT_EXPIRES_IN: 7d
+      NODE_ENV: test
+      ENABLE_DEV_AUTH: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Deploy migrations
+        run: npm run db:deploy -w @platform/api
+
+      - name: Lint API
+        run: npm run lint -w @platform/api
+
+      - name: Lint Web
+        run: npm run lint -w @platform/web
+
+      - name: Typecheck API
+        run: npm run build -w @platform/api
+
+      - name: Typecheck Web
+        run: npm run build -w @platform/web
+
+      - name: Run tests
+        run: npm test -w @platform/api
+
+  infrastructure-verify:
+    runs-on: ubuntu-latest
+    needs: lint-typecheck-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify deployment infrastructure
+        run: |
+          npx tsx scripts/production/verify-docker.ts
+          npx tsx scripts/production/verify-nginx.ts
+          npx tsx scripts/production/verify-pm2.ts
+          npx tsx scripts/production/verify-env.ts --file .env.production.example
+          npx tsx scripts/production/verify-env.ts --file .env.staging.example
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: infrastructure-verify
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -f apps/api/Dockerfile -t platform-api:ci .
+
+      - name: Build Web image
+        run: |
+          docker build -f apps/web/Dockerfile \
+            --build-arg NEXT_PUBLIC_API_URL=http://localhost:3001/v1 \
+            -t platform-web:ci .
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: '0'

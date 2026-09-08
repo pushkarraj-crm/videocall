@@ -6,6 +6,7 @@ import { AuthenticatedUser } from '../../common/interfaces/authenticated-user.in
 import { AuthService } from './auth.service';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import { DevLoginDto } from './dto/dev-login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { VerifyFirebaseTokenDto } from './dto/verify-firebase-token.dto';
 
 @Controller('auth')
@@ -24,6 +25,19 @@ export class AuthController {
   @Post('dev-login')
   devLogin(@Body() dto: DevLoginDto) {
     return this.authService.devLogin(dto);
+  }
+
+  @Public()
+  @Throttle({ auth: { limit: 30, ttl: 60_000 } })
+  @Post('refresh')
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshSession(dto.refreshToken);
+  }
+
+  @Public()
+  @Post('logout')
+  logout(@Body() body: { refreshToken?: string }) {
+    return this.authService.logout(body.refreshToken);
   }
 
   @Post('complete-onboarding')

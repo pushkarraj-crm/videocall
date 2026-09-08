@@ -1,28 +1,41 @@
 import { Controller, Get } from '@nestjs/common';
 import { Public } from '../../common/decorators/public.decorator';
-import { PrismaService } from '../../database/prisma.service';
+import { HealthService } from './health.service';
 
 @Controller('health')
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly health: HealthService) {}
 
   @Public()
   @Get()
   async check() {
-    let database = 'ok';
-    try {
-      if (!this.prisma.isConnected) {
-        await this.prisma.$connect();
-      }
-      await this.prisma.$queryRaw`SELECT 1`;
-    } catch {
-      database = 'error';
-    }
-
+    const database = await this.health.checkDatabase();
     return {
       status: database === 'ok' ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
       services: { database },
     };
+  }
+
+  @Public()
+  @Get('live')
+  live() {
+    return {
+      status: 'alive',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    };
+  }
+
+  @Public()
+  @Get('ready')
+  async ready() {
+    return this.health.getReadiness();
+  }
+
+  @Public()
+  @Get('metrics')
+  async metrics() {
+    return this.health.getMetrics();
   }
 }

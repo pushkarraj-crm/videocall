@@ -1,0 +1,2 @@
+ALTER TABLE "coin_packages" ADD COLUMN IF NOT EXISTS "is_most_popular" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "coin_packages" ADD COLUMN IF NOT EXISTS "is_limited_offer" BOOLEAN NOT NULL DEFAULT false;

@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { ConsentDocumentType, Role, WalletTransactionType } from '@prisma/client';
+import { ConsentDocumentType, Role, User, UserStatus, WalletTransactionType } from '@prisma/client';
+import { createHash, randomBytes } from 'crypto';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { generateReferralCode } from '../../common/utils/referral-code.util';
 import { PrismaService } from '../../database/prisma.service';
@@ -16,6 +17,8 @@ import { JwtPayload } from './strategies/jwt.strategy';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly firebase: FirebaseService,
     private readonly jwt: JwtService,
@@ -30,6 +33,7 @@ export class AuthService {
     const decoded = await this.firebase.verifyIdToken(idToken);
 
     let user = await this.usersService.findByFirebaseUid(decoded.uid);
+    const isNewUser = !user;
 
     if (!user) {
       user = await this.prisma.user.create({
@@ -45,20 +49,69 @@ export class AuthService {
 
       await this.usersService.assignRole(user.id, Role.user);
       await this.walletService.ensureWallet(user.id);
+      await this.grantSignupBonus(user.id);
+    }
+
+    if (user.status === UserStatus.suspended) {
+      throw new BusinessException(
+        'Your account has been suspended. Please contact support.',
+        403,
+        'ACCOUNT_SUSPENDED',
+      );
+    }
+    if (user.status === UserStatus.banned) {
+      throw new BusinessException('Account access denied', 403, 'ACCOUNT_BANNED');
     }
 
     const roles = await this.usersService.getUserRoles(user.id);
-    const payload: JwtPayload = {
-      sub: user.id,
-      firebaseUid: user.firebaseUid,
-      roles: roles.map(String),
-    };
-
-    const accessToken = await this.jwt.signAsync(payload);
+    const tokens = await this.issueTokenPair(user, roles);
     const needsOnboarding = await this.userNeedsOnboarding(user.id);
 
+    this.logger.log(
+      `Firebase verify userId=${user.id} isNew=${isNewUser} roles=${roles.join(',')} needsOnboarding=${needsOnboarding}`,
+    );
+
     return {
-      accessToken,
+      ...tokens,
+      user: {
+        id: user.id,
+        displayName: user.displayName,
+        status: user.status,
+        roles,
+        needsOnboarding,
+      },
+      isNewUser,
+    };
+  }
+
+  async refreshSession(refreshToken: string) {
+    const tokenHash = createHash('sha256').update(refreshToken).digest('hex');
+    const stored = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
+
+    if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
+      throw new BusinessException('Session expired — please sign in again', 401, 'INVALID_REFRESH_TOKEN');
+    }
+
+    const user = await this.usersService.findById(stored.userId);
+    if (!user || user.status === UserStatus.banned || user.status === UserStatus.suspended) {
+      throw new BusinessException('Account access denied', 403, 'ACCOUNT_BLOCKED');
+    }
+
+    await this.prisma.refreshToken.update({
+      where: { id: stored.id },
+      data: { revokedAt: new Date() },
+    });
+
+    const roles = await this.usersService.getUserRoles(user.id);
+    const tokens = await this.issueTokenPair(user, roles);
+    const needsOnboarding = await this.userNeedsOnboarding(user.id);
+
+    this.logger.log(
+      `Session refresh userId=${user.id} roles=${roles.join(',')} needsOnboarding=${needsOnboarding}`,
+    );
+
+    return {
+      ...tokens,
       user: {
         id: user.id,
         displayName: user.displayName,
@@ -67,6 +120,17 @@ export class AuthService {
         needsOnboarding,
       },
     };
+  }
+
+  async logout(refreshToken?: string) {
+    if (refreshToken) {
+      const tokenHash = createHash('sha256').update(refreshToken).digest('hex');
+      await this.prisma.refreshToken.updateMany({
+        where: { tokenHash, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
+    return { loggedOut: true };
   }
 
   async completeOnboarding(userId: string, dto: CompleteOnboardingDto, ip?: string, userAgent?: string) {
@@ -127,7 +191,7 @@ export class AuthService {
       'user' | 'host' | 'admin',
       { phone: string; displayName: string; seedCoins?: number }
     > = {
-      user: { phone: '+919999990001', displayName: 'Dev User', seedCoins: 500 },
+      user: { phone: '+919999990001', displayName: 'Dev User', seedCoins: 0 },
       host: { phone: '+919999990002', displayName: 'Dev Host' },
       admin: { phone: '+919999990003', displayName: 'Dev Admin' },
     };
@@ -153,6 +217,7 @@ export class AuthService {
       });
       await this.usersService.assignRole(user.id, Role.user);
       await this.walletService.ensureWallet(user.id);
+      await this.grantSignupBonus(user.id);
     }
 
     if (completeOnboarding) {
@@ -186,17 +251,11 @@ export class AuthService {
     }
 
     const roles = await this.usersService.getUserRoles(user.id);
-    const payload: JwtPayload = {
-      sub: user.id,
-      firebaseUid: user.firebaseUid,
-      roles: roles.map(String),
-    };
-
-    const accessToken = await this.jwt.signAsync(payload);
+    const tokens = await this.issueTokenPair(user, roles);
     const needsOnboarding = await this.userNeedsOnboarding(user.id);
 
     return {
-      accessToken,
+      ...tokens,
       user: {
         id: user.id,
         displayName: user.displayName,
@@ -206,6 +265,54 @@ export class AuthService {
       },
       isNewUser,
     };
+  }
+
+  private async issueTokenPair(user: User, roles: Role[]) {
+    const payload: JwtPayload = {
+      sub: user.id,
+      firebaseUid: user.firebaseUid,
+      roles: roles.map(String),
+    };
+
+    const accessToken = await this.jwt.signAsync(payload);
+    const refreshRaw = randomBytes(48).toString('base64url');
+    const tokenHash = createHash('sha256').update(refreshRaw).digest('hex');
+    const refreshDays = this.config.get<number>('JWT_REFRESH_EXPIRES_DAYS', 30);
+    const expiresAt = new Date(Date.now() + refreshDays * 24 * 60 * 60 * 1000);
+
+    await this.prisma.refreshToken.create({
+      data: { userId: user.id, tokenHash, expiresAt },
+    });
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    return {
+      accessToken,
+      refreshToken: refreshRaw,
+      expiresIn: this.config.get<string>('JWT_EXPIRES_IN', '7d'),
+    };
+  }
+
+  private async grantSignupBonus(userId: string) {
+    const bonusCoins = this.config.get<number>('SIGNUP_BONUS_COINS', 100);
+    if (bonusCoins <= 0) return;
+
+    try {
+      await this.walletService.creditWallet({
+        userId,
+        amountUnits: coinsToUnits(bonusCoins),
+        type: WalletTransactionType.admin_adjustment,
+        referenceType: 'signup_bonus',
+        referenceId: userId,
+        idempotencyKey: `signup:bonus:${userId}`,
+        description: 'Welcome bonus',
+      });
+    } catch {
+      /* idempotent — bonus already granted */
+    }
   }
 
   private async userNeedsOnboarding(userId: string): Promise<boolean> {
@@ -258,6 +365,36 @@ export class AuthService {
 
     const roles = await this.usersService.getUserRoles(userId);
     const wallet = await this.walletService.getWalletSummary(userId);
+    const isHost = roles.includes(Role.host);
+
+    let hostBio: string | null = null;
+    let gallery: Array<{ id: string; url: string; filename: string; uploadedAt: string }> = [];
+
+    if (isHost) {
+      const host = await this.prisma.hostProfile.findUnique({
+        where: { userId },
+        select: { hostBio: true, virtualHostGallery: true },
+      });
+      hostBio = host?.hostBio ?? null;
+      const raw = host?.virtualHostGallery;
+      if (Array.isArray(raw)) {
+        gallery = raw
+          .map((item) => {
+            if (!item || typeof item !== 'object') return null;
+            const rec = item as Record<string, unknown>;
+            const url = typeof rec.url === 'string' ? rec.url : null;
+            if (!url) return null;
+            return {
+              id: typeof rec.id === 'string' ? rec.id : url,
+              url,
+              filename: typeof rec.filename === 'string' ? rec.filename : url.split('/').pop() ?? url,
+              uploadedAt:
+                typeof rec.uploadedAt === 'string' ? rec.uploadedAt : new Date().toISOString(),
+            };
+          })
+          .filter((g): g is { id: string; url: string; filename: string; uploadedAt: string } => !!g);
+      }
+    }
 
     return {
       id: user.id,
@@ -273,8 +410,14 @@ export class AuthService {
       referralCode: user.referralCode,
       status: user.status,
       freeCallsUsed: user.freeCallsUsed,
+      lastLoginAt: user.lastLoginAt,
+      walletCoins: wallet.balanceCoins,
       roles,
       wallet,
+      /** Profile-edit fields (User + Host) — same identity as session */
+      isHost,
+      hostBio,
+      gallery,
     };
   }
 }

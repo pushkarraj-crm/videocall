@@ -1,0 +1,87 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      rollback:
+        description: Rollback to previous image tag
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify infrastructure
+        run: |
+          npx tsx scripts/production/verify-docker.ts
+          npx tsx scripts/production/verify-nginx.ts
+          npx tsx scripts/production/verify-pm2.ts
+          npx tsx scripts/production/verify-env.ts --file .env.production.example
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: verify
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Deploy to server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          COMPOSE_FILES="-f docker-compose.prod.yml"
+          ENV_FILE=".env.production"
+          if [ "${{ inputs.environment }}" = "staging" ]; then
+            COMPOSE_FILES="-f docker-compose.prod.yml -f docker-compose.staging.yml"
+            ENV_FILE=".env.staging"
+          fi
+
+          ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} << REMOTE
+            set -euo pipefail
+            cd ${DEPLOY_PATH}
+            git fetch origin main
+            git checkout ${IMAGE_TAG} || git pull origin main
+
+            if [ "${{ inputs.rollback }}" = "true" ]; then
+              docker compose ${COMPOSE_FILES} pull
+              docker compose ${COMPOSE_FILES} up -d --no-build --remove-orphans
+            else
+              docker compose ${COMPOSE_FILES} build
+              BACKUP_BEFORE_MIGRATE=true bash scripts/production/migrate.sh
+              docker compose ${COMPOSE_FILES} up -d --remove-orphans
+            fi
+
+            docker compose ${COMPOSE_FILES} ps
+            curl -fsS "https://\$(grep API_DOMAIN ${ENV_FILE} | cut -d= -f2)/v1/health/ready" || true
+          REMOTE
+
+      - name: Smoke test
+        run: |
+          curl -fsS "https://${{ vars.API_DOMAIN }}/v1/health/ready" || echo "Smoke test skipped — set vars.API_DOMAIN"
