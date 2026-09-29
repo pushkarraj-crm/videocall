@@ -26,7 +26,7 @@ const FINDINGS: Finding[] = [
   { id: 'SEC-004', severity: 'critical', area: 'Auth', title: 'JWT stored in localStorage', status: 'mitigated', note: 'Accepted risk — auth unchanged per release scope; refresh rotation + session revocation active' },
   { id: 'SEC-005', severity: 'major', area: 'Payments', title: 'Webhook raw body fallback', status: 'fixed', note: 'Webhook rejects requests without rawBody' },
   { id: 'SEC-006', severity: 'major', area: 'Payments', title: 'Payment confirm missing DTO validation', status: 'fixed', note: 'ConfirmPaymentDto with class-validator' },
-  { id: 'SEC-007', severity: 'major', area: 'Rate limiting', title: 'In-memory throttler not distributed', status: 'open', note: 'Mitigated by nginx rate limits; Redis throttler recommended post-launch' },
+  { id: 'SEC-007', severity: 'major', area: 'Rate limiting', title: 'In-memory throttler not distributed', status: 'fixed', note: 'Rate counters use atomic Redis updates across API replicas; process-local fallback is used only when Redis is unavailable' },
   { id: 'SEC-008', severity: 'major', area: 'Infrastructure', title: 'Redis without AUTH in compose', status: 'open', note: 'Internal Docker network only; add requirepass before multi-tenant hosting' },
   { id: 'SEC-009', severity: 'major', area: 'CSP', title: 'unsafe-inline / unsafe-eval in CSP', status: 'mitigated', note: 'Required for Zego WebRTC; legal HTML now sanitized' },
   { id: 'DEP-001', severity: 'critical', area: 'Deploy', title: 'Smoke test hit app domain instead of API domain', status: 'fixed', note: 'deploy.yml uses API_DOMAIN for /v1/health/ready' },

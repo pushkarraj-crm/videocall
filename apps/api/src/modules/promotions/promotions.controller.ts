@@ -63,7 +63,7 @@ export class PromotionsController {
     );
   }
 
-  @Throttle({ payments: { limit: 30, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('checkout')
   checkout(@CurrentUser() user: AuthenticatedUser, @Body() dto: CheckoutPromoDto) {
     return this.promotions.checkout(user.id, dto.packageId, dto.customCoins);

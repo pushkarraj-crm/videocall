@@ -14,6 +14,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { ZegoService } from '../../integrations/zego/zego.service';
 import { CallHistoryService } from '../call-history/call-history.service';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
+import { NotificationEventsService } from '../notifications/notification-events.service';
 import { UsersService } from '../users/users.service';
 import { WalletService } from '../wallet/wallet.service';
 import { unitsToCoins } from '../../common/constants/coins';
@@ -43,12 +44,19 @@ export class CallsService {
     private readonly config: ConfigService,
     private readonly callHistory: CallHistoryService,
     private readonly notifications: NotificationDispatcherService,
+    private readonly notificationEvents: NotificationEventsService,
     private readonly giftsService: GiftsService,
     private readonly virtualHosts: VirtualHostsService,
     private readonly aiHostAssets: AiHostAssetsService,
     @Inject(forwardRef(() => CallRoutingService))
     private readonly callRouting: CallRoutingService,
   ) {}
+
+  private emitCallStatus(callId: string, participantIds: string[], status: CallStatus) {
+    for (const userId of new Set(participantIds)) {
+      this.notificationEvents.emit(userId, { event: 'call_status', callId, status });
+    }
+  }
 
   /** Non-blocking history sync — never affects call flow. */
   private recordHistory(
@@ -222,6 +230,7 @@ export class CallsService {
         this.notifications.onIncomingCall(
           withRoom.id,
           calleeId,
+          callerId,
           caller.displayName,
           caller.avatarUrl,
         ),
@@ -409,7 +418,7 @@ export class CallsService {
     }
 
     const now = new Date();
-    return this.prisma.call.update({
+    const updated = await this.prisma.call.update({
       where: { id: call.id },
       data: {
         status: CallStatus.active,
@@ -417,6 +426,8 @@ export class CallsService {
         answeredAt: call.answeredAt ?? now,
       },
     });
+    this.emitCallStatus(call.id, [call.callerId, call.calleeId], updated.status);
+    return updated;
   }
 
   async acceptCall(callId: string, hostId: string) {
@@ -470,6 +481,7 @@ export class CallsService {
     });
 
     this.callRouting.cancelAiFallback(callId, 'HOST_ACCEPTED');
+    this.emitCallStatus(callId, [call.callerId, call.calleeId], updated.status);
 
     this.logger.log(
       JSON.stringify({
@@ -501,6 +513,7 @@ export class CallsService {
       where: { id: callId },
       data: { status: CallStatus.rejected, endedAt: new Date() },
     });
+    this.emitCallStatus(callId, [call.callerId, call.calleeId], rejected.status);
     this.recordHistory('rejected', callId);
 
     const host = await this.prisma.user.findUniqueOrThrow({
@@ -825,23 +838,30 @@ export class CallsService {
       giftReaction = this.virtualHosts.getGiftReaction(hostProfile, resolved.slug);
     }
 
-    return {
+    const giftEvent = {
+      id: createdGift.id,
+      giftId: createdGift.giftType,
+      quantity: qty,
+      coinCoins: unitsToCoins(createdGift.coinUnits),
+      hostEarningCoins: unitsToCoins(createdGift.hostEarningUnits),
+      createdAt: createdGift.createdAt.toISOString(),
+      sender,
       gift: {
-        id: createdGift.id,
-        giftId: createdGift.giftType,
-        quantity: qty,
-        coinCoins: unitsToCoins(createdGift.coinUnits),
-        hostEarningCoins: unitsToCoins(createdGift.hostEarningUnits),
-        createdAt: createdGift.createdAt.toISOString(),
-        sender,
-        gift: {
-          name: resolved.name,
-          icon: resolved.icon,
-          animationTier: resolved.animationTier,
-          animationKey: resolved.animationKey,
-          category: resolved.category,
-        },
+        name: resolved.name,
+        icon: resolved.icon,
+        animationTier: resolved.animationTier,
+        animationKey: resolved.animationKey,
+        category: resolved.category,
       },
+    };
+    this.notificationEvents.emit(call.calleeId, {
+      event: 'call_gift',
+      callId,
+      gift: giftEvent,
+    });
+
+    return {
+      gift: giftEvent,
       balanceCoins: wallet.balanceCoins,
       combo: { giftId: resolved.slug, quantity: qty },
       giftReaction,
@@ -922,6 +942,7 @@ export class CallsService {
 
       return result;
     });
+    this.emitCallStatus(callId, [call.callerId, call.calleeId], updated.status);
 
     this.logger.log(
       JSON.stringify({

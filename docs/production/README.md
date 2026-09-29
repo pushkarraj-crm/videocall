@@ -9,17 +9,14 @@ This directory contains guides for deploying and operating the platform in produ
 cp .env.production.example .env.production
 # Edit all secrets and domain values
 
-# 2. Build and start
-docker compose -f docker-compose.prod.yml up -d --build
+# 2. Build, migrate, and start the scaled services
+bash scripts/production/deploy.sh
 
-# 3. Run migrations
-bash scripts/production/migrate.sh
-
-# 4. Issue SSL (first time)
+# 3. Issue SSL (first time)
 DOMAIN_NAME=app.example.com LETSENCRYPT_EMAIL=ops@example.com \
   bash scripts/production/init-letsencrypt.sh
 
-# 5. Verify
+# 4. Verify
 API_URL=https://api.example.com/v1 bash scripts/production/verify-production.sh
 ```
 
@@ -46,6 +43,7 @@ API_URL=https://api.example.com/v1 bash scripts/production/verify-production.sh
 - [INCIDENT-RESPONSE.md](./INCIDENT-RESPONSE.md) — Incident playbook
 - [DISASTER-RECOVERY.md](./DISASTER-RECOVERY.md) — DR procedures
 - [LOAD-TESTING.md](./LOAD-TESTING.md) — Load test guide
+- [SCALING.md](./SCALING.md) — 5,000-session sizing and rollout notes
 
 ## Production Readiness Score: 92/100
 

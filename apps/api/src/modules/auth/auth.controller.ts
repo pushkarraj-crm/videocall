@@ -14,21 +14,21 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
-  @Throttle({ auth: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('verify-token')
   verifyToken(@Body() dto: VerifyFirebaseTokenDto) {
     return this.authService.verifyFirebaseToken(dto.idToken);
   }
 
   @Public()
-  @Throttle({ auth: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('dev-login')
   devLogin(@Body() dto: DevLoginDto) {
     return this.authService.devLogin(dto);
   }
 
   @Public()
-  @Throttle({ auth: { limit: 30, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('refresh')
   refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshSession(dto.refreshToken);

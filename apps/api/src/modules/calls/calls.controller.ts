@@ -10,7 +10,12 @@ import { CallRoutingService } from './routing/call-routing.service';
 import { MatchCallDto } from './routing/dto/match-call.dto';
 import { CallsService } from './calls.service';
 
-@Throttle({ calls: { limit: 600, ttl: 60_000 } })
+@Throttle({
+  default: {
+    limit: process.env.NODE_ENV === 'production' ? 60_000 : 600,
+    ttl: 60_000,
+  },
+})
 @Controller('calls')
 export class CallsController {
   constructor(

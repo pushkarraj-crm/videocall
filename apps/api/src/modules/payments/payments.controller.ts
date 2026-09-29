@@ -33,7 +33,7 @@ export class PaymentsController {
     return this.paymentsService.getRazorpayStatus();
   }
 
-  @Throttle({ payments: { limit: 30, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('create-order')
   createOrder(
     @CurrentUser() user: AuthenticatedUser,
@@ -42,7 +42,7 @@ export class PaymentsController {
     return this.paymentsService.createOrder(user.id, dto.packageId, dto.customCoins);
   }
 
-  @Throttle({ payments: { limit: 30, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('confirm')
   confirmPayment(@CurrentUser() user: AuthenticatedUser, @Body() dto: ConfirmPaymentDto) {
     return this.paymentsService.confirmPayment(
@@ -54,7 +54,7 @@ export class PaymentsController {
   }
 
   @Public()
-  @Throttle({ payments: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @Post('webhook')
   webhook(
     @Req() req: RawBodyRequest<Request>,

@@ -17,11 +17,16 @@ services:
       retries: 5
     networks:
       - platform
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4.0'
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
     volumes:
       - redisdata:/data
     healthcheck:
@@ -31,6 +36,11 @@ services:
       retries: 5
     networks:
       - platform
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+          cpus: '2.0'
 
   api:
     build:
@@ -43,7 +53,7 @@ services:
       NODE_ENV: production
       ENABLE_CRON_JOBS: 'false'
       REDIS_URL: redis://redis:6379
-      DATABASE_URL: postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}?schema=public
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}?schema=public&connection_limit=${PRISMA_CONNECTION_LIMIT:-10}&pool_timeout=10"
       STORAGE_LOCAL_PATH: /app/uploads
     volumes:
       - uploads:/app/uploads
@@ -62,9 +72,11 @@ services:
     networks:
       - platform
     deploy:
+      replicas: ${API_REPLICAS:-6}
       resources:
         limits:
-          memory: 768M
+          memory: 1G
+          cpus: '1.0'
 
   worker:
     build:
@@ -78,7 +90,7 @@ services:
       NODE_ENV: production
       ENABLE_CRON_JOBS: 'true'
       REDIS_URL: redis://redis:6379
-      DATABASE_URL: postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}?schema=public
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}?schema=public&connection_limit=${PRISMA_CONNECTION_LIMIT:-10}&pool_timeout=10"
       STORAGE_LOCAL_PATH: /app/uploads
     volumes:
       - uploads:/app/uploads
@@ -95,7 +107,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 768M
+          cpus: '1.0'
 
   web:
     build:
@@ -128,12 +141,14 @@ services:
     networks:
       - platform
     deploy:
+      replicas: ${WEB_REPLICAS:-2}
       resources:
         limits:
-          memory: 512M
+          memory: 768M
+          cpus: '1.0'
 
   nginx:
-    image: nginx:1.27-alpine
+    image: nginx:1.28-alpine
     restart: unless-stopped
     ports:
       - '80:80'
@@ -151,7 +166,7 @@ services:
       - certbot_certs:/etc/letsencrypt:ro
       - nginx_logs:/var/log/nginx
       - uploads:/var/www/uploads:ro
-    entrypoint: ['/docker-entrypoint.sh']
+    entrypoint: ['/bin/sh', '/docker-entrypoint.sh']
     depends_on:
       web:
         condition: service_healthy
@@ -164,6 +179,15 @@ services:
       retries: 3
     networks:
       - platform
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
 
   certbot:
     image: certbot/certbot:latest

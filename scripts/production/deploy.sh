@@ -17,10 +17,10 @@ fi
 npx tsx scripts/production/verify-env.ts --file "${ENV_FILE}"
 
 if [ "${DEPLOY_MODE}" = "docker" ]; then
-  docker compose -f docker-compose.prod.yml build
+  docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml build
   bash scripts/production/migrate.sh
-  docker compose -f docker-compose.prod.yml up -d --remove-orphans
-  docker compose -f docker-compose.prod.yml ps
+  docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml up -d --remove-orphans
+  docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml ps
 elif [ "${DEPLOY_MODE}" = "pm2" ]; then
   npm run build
   pm2 reload ecosystem.config.cjs --env production --update-env

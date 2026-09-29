@@ -11,6 +11,8 @@ import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './database/prisma.module';
 import { FirebaseModule } from './integrations/firebase/firebase.module';
 import { RedisModule } from './integrations/redis/redis.module';
+import { RedisService } from './integrations/redis/redis.service';
+import { RedisThrottlerStorage } from './integrations/redis/redis-throttler-storage';
 import { AiHostAssetsModule } from './integrations/ai-host-assets/ai-host-assets.module';
 import { StorageModule } from './integrations/storage/storage.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -58,24 +60,20 @@ import { WalletModule } from './modules/wallet/wallet.module';
         }),
       },
     }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'default',
-        ttl: 60_000,
-        limit: process.env.NODE_ENV === 'production' ? 100 : 5000,
-      },
-      {
-        name: 'auth',
-        ttl: 60_000,
-        limit: process.env.NODE_ENV === 'production' ? 20 : 500,
-      },
-      {
-        name: 'payments',
-        ttl: 60_000,
-        limit: process.env.NODE_ENV === 'production' ? 30 : 500,
-      },
-      { name: 'calls', ttl: 60_000, limit: 600 },
-    ]),
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [RedisService],
+      useFactory: (redis: RedisService) => ({
+        throttlers: [
+          {
+            name: 'default',
+            ttl: 60_000,
+            limit: process.env.NODE_ENV === 'production' ? 60_000 : 5000,
+          },
+        ],
+        storage: new RedisThrottlerStorage(redis),
+      }),
+    }),
     ...(process.env.ENABLE_CRON_JOBS !== 'false' ? [ScheduleModule.forRoot()] : []),
     RedisModule,
     StorageModule,

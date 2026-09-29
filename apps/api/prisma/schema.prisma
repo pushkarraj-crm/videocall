@@ -705,6 +705,7 @@ model User {
   legalPolicyRevisions     LegalPolicyRevision[]   @relation("LegalPolicyRevisionPublisher")
 
   @@index([status, deletedAt])
+  @@index([status, lastSeenAt])
   @@index([abuseScore(sort: Desc)])
   @@index([createdAt(sort: Desc)])
   @@map("users")

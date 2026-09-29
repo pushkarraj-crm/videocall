@@ -289,6 +289,7 @@ export function validateEnv(config: Record<string, unknown>) {
     const required: Array<[keyof EnvironmentVariables, string]> = [
       ['JWT_SECRET', 'JWT_SECRET'],
       ['DATABASE_URL', 'DATABASE_URL'],
+      ['REDIS_URL', 'REDIS_URL'],
       ['CORS_ORIGINS', 'CORS_ORIGINS'],
       ['FIREBASE_PROJECT_ID', 'FIREBASE_PROJECT_ID'],
       ['ZEGO_APP_ID', 'ZEGO_APP_ID'],

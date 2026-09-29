@@ -1,21 +1,97 @@
-import { Injectable, MessageEvent } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  MessageEvent,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { EventEmitter } from 'events';
+import { randomUUID } from 'crypto';
 import { Observable, interval, merge } from 'rxjs';
 import { map } from 'rxjs/operators';
 import type { SerializedNotification } from '../../common/utils/notification-display';
+import { RedisService } from '../../integrations/redis/redis.service';
 
 export type NotificationStreamEvent =
   | { event: 'notification'; notification: SerializedNotification }
   | { event: 'unread_count'; count: number }
+  | {
+      event: 'incoming_call';
+      callId: string;
+      callerId: string;
+      callerName: string;
+      callerAvatarUrl: string | null;
+    }
+  | { event: 'call_status'; callId: string; status: string }
+  | {
+      event: 'call_gift';
+      callId: string;
+      gift: {
+        id: string;
+        giftId: string;
+        quantity: number;
+        coinCoins: number;
+        hostEarningCoins: number;
+        createdAt: string;
+        sender: { id: string; displayName: string; avatarUrl: string | null };
+        gift: {
+          name: string;
+          icon: string;
+          animationTier: string;
+          animationKey: string;
+          category: string;
+        };
+      };
+    }
   | { event: 'heartbeat'; ts: string };
 
 @Injectable()
-export class NotificationEventsService {
+export class NotificationEventsService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(NotificationEventsService.name);
   private readonly emitter = new EventEmitter();
+  private readonly instanceId = randomUUID();
   private readonly maxListeners = 500;
+  private subscriptionRetry: NodeJS.Timeout | null = null;
 
-  constructor() {
+  constructor(private readonly redis: RedisService) {
     this.emitter.setMaxListeners(this.maxListeners);
+  }
+
+  async onModuleInit() {
+    if (!this.redis.isEnabled) return;
+    if (await this.subscribeToRedis()) return;
+
+    this.logger.warn('Notification fan-out is local until Redis Pub/Sub is available');
+    this.subscriptionRetry = setInterval(() => {
+      void this.subscribeToRedis().then((subscribed) => {
+        if (!subscribed || !this.subscriptionRetry) return;
+        clearInterval(this.subscriptionRetry);
+        this.subscriptionRetry = null;
+        this.logger.log('Notification fan-out connected to Redis Pub/Sub');
+      });
+    }, 5_000);
+    this.subscriptionRetry.unref();
+  }
+
+  onModuleDestroy() {
+    if (this.subscriptionRetry) clearInterval(this.subscriptionRetry);
+    this.subscriptionRetry = null;
+  }
+
+  private async subscribeToRedis() {
+    if ((await this.redis.ping()) !== 'ok') return false;
+    return this.redis.subscribePattern('notification:*', (channel, message) => {
+      try {
+        const envelope = JSON.parse(message) as {
+          origin?: string;
+          payload?: NotificationStreamEvent;
+        };
+        if (envelope.origin === this.instanceId || !envelope.payload) return;
+        this.emitter.emit(channel, envelope.payload);
+      } catch {
+        this.logger.warn('Ignoring malformed notification event from Redis');
+      }
+    });
   }
 
   private channel(userId: string) {
@@ -23,7 +99,12 @@ export class NotificationEventsService {
   }
 
   emit(userId: string, payload: NotificationStreamEvent) {
-    this.emitter.emit(this.channel(userId), payload);
+    const channel = this.channel(userId);
+    this.emitter.emit(channel, payload);
+    void this.redis.publish(
+      channel,
+      JSON.stringify({ origin: this.instanceId, payload }),
+    );
   }
 
   subscribe(userId: string): Observable<MessageEvent> {

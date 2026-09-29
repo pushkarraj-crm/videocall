@@ -38,11 +38,22 @@
     "load-test": "bash scripts/load-test/run-load-test.sh"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
+    "concurrently": "^9.2.4",
     "playwright": "^1.49.1"
   },
   "dependencies": {
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1"
+  },
+  "allowScripts": {
+    "prisma": true,
+    "@prisma/client": true,
+    "@prisma/engines": true,
+    "esbuild@0.28.1": true,
+    "sharp": true,
+    "protobufjs": true,
+    "@firebase/util": true,
+    "unrs-resolver@1.12.2": true,
+    "zego-express-engine-webrtc@3.12.0": true
   }
 }

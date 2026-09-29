@@ -94,10 +94,11 @@ export class NotificationDispatcherService {
   async onIncomingCall(
     callId: string,
     hostId: string,
+    callerId: string,
     callerName: string,
     callerAvatarUrl?: string | null,
   ) {
-    return this.create({
+    const result = await this.create({
       userId: hostId,
       type: NotificationType.incoming_call,
       title: 'Incoming call',
@@ -105,8 +106,16 @@ export class NotificationDispatcherService {
       referenceId: callId,
       image: callerAvatarUrl ?? null,
       priority: NotificationPriority.urgent,
-      metadata: { callerName, callerAvatarUrl: callerAvatarUrl ?? null },
+      metadata: { callerId, callerName, callerAvatarUrl: callerAvatarUrl ?? null },
     });
+    this.events.emit(hostId, {
+      event: 'incoming_call',
+      callId,
+      callerId,
+      callerName,
+      callerAvatarUrl: callerAvatarUrl ?? null,
+    });
+    return result;
   }
 
   async onCallRejected(callId: string, callerId: string, hostName: string) {

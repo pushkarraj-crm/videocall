@@ -1,11 +1,13 @@
 upstream platform_web {
-  server web:3000;
-  keepalive 32;
+  zone platform_web 64k;
+  server web:3000 resolve;
+  keepalive 128;
 }
 
 upstream platform_api {
-  server api:3001;
-  keepalive 32;
+  zone platform_api 64k;
+  server api:3001 resolve;
+  keepalive 256;
 }
 
 # Shared proxy settings
@@ -41,8 +43,8 @@ server {
 
   include /etc/nginx/snippets/security-headers.conf;
 
-  limit_req zone=web_limit burst=100 nodelay;
-  limit_conn conn_limit 50;
+  limit_req zone=web_limit burst=2000 nodelay;
+  limit_conn conn_limit 10000;
 
   # Next.js static assets — long cache
   location /_next/static/ {
@@ -114,8 +116,8 @@ server {
 
   include /etc/nginx/snippets/security-headers.conf;
 
-  limit_req zone=web_limit burst=80 nodelay;
-  limit_conn conn_limit 30;
+  limit_req zone=web_limit burst=2000 nodelay;
+  limit_conn conn_limit 10000;
 
   location /_next/static/ {
     proxy_pass http://platform_web;
@@ -150,8 +152,8 @@ server {
 
   include /etc/nginx/snippets/security-headers.conf;
 
-  limit_req zone=api_limit burst=60 nodelay;
-  limit_conn conn_limit 100;
+  limit_req zone=api_limit burst=2000 nodelay;
+  limit_conn conn_limit 10000;
 
   # Health — no access log
   location = /v1/health {

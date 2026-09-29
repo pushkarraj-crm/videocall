@@ -10,22 +10,24 @@
 
 The same `docker-compose.prod.yml` works on any Linux VPS:
 
-1. Provision Ubuntu 22.04+ instance (4 vCPU, 8GB RAM recommended for 1000 concurrent)
+1. For a 5,000-session starting point, provision at least 24 vCPU and 32GB RAM, or use managed Postgres/Redis plus compute with equivalent aggregate capacity. This is a starting size, not a measured guarantee.
 2. Install Docker
 3. Clone repository
 4. Copy `.env.production.example` → `.env.production`
-5. Run `docker compose -f docker-compose.prod.yml up -d --build`
-6. Run `bash scripts/production/migrate.sh`
-7. Run SSL init script
-8. Verify with `verify-production.sh`
+5. Run `bash scripts/production/deploy.sh`
+6. Run SSL init script
+7. Verify with `verify-production.sh`
 
 ## Horizontal Scaling
 
-- **API**: Scale with `docker compose up -d --scale api=3` behind NGINX upstream
+- **API**: The production compose file starts 6 API replicas by default. Set `API_REPLICAS` in `.env.production` to tune the count. NGINX refreshes Docker DNS and distributes traffic across replicas.
 - **Worker**: Run 1–2 worker instances (cron idempotency via DB)
-- **Web**: Scale with `--scale web=2`
+- **Web**: The production compose file starts 2 web replicas by default. Set `WEB_REPLICAS` to tune the count.
+- **Database pool**: Each API and worker process is capped at `PRISMA_CONNECTION_LIMIT` connections. Keep `API_REPLICAS × PRISMA_CONNECTION_LIMIT + worker pools + operational connections` below PostgreSQL `max_connections`.
 - **Redis**: Use managed Redis (ElastiCache, DO Managed Redis) — set `REDIS_URL`
 - **PostgreSQL**: Use managed RDS/DO Postgres for production
+
+Video and audio streams use Zego; confirm the Zego project’s concurrent-user quota and regional media capacity separately from API capacity.
 
 ## Rollback
 
