@@ -18,13 +18,13 @@ const ROUTES = [
 async function fetchRoute(route: string) {
   const res = await fetch(`${WEB}${route}`, { redirect: 'follow' });
   const text = await res.text();
-  return { route, status: res.status, ok: res.ok, hasLovinexa: /Lovinexa/i.test(text) };
+  return { route, status: res.status, ok: res.ok, hasLovenexa: /Lovenexa/i.test(text) };
 }
 
 async function main() {
   const results = [];
   for (const route of ROUTES) {
-    let last: { route: string; status: number; ok: boolean; hasLovinexa: boolean } | null = null;
+    let last: { route: string; status: number; ok: boolean; hasLovenexa: boolean } | null = null;
     for (let attempt = 0; attempt < 8; attempt += 1) {
       last = await fetchRoute(route);
       if (last.ok) break;
@@ -35,8 +35,8 @@ async function main() {
   }
 
   const rootRoutes = results.filter((r) => !r.route.startsWith('/legal/'));
-  if (rootRoutes.some((r) => !r.hasLovinexa)) {
-    throw new Error('One or more legal pages missing Lovinexa branding');
+  if (rootRoutes.some((r) => !r.hasLovenexa)) {
+    throw new Error('One or more legal pages missing Lovenexa branding');
   }
 
   console.log(

@@ -10,6 +10,25 @@ import {
 } from 'class-validator';
 
 class EnvironmentVariables {
+  @IsString()
+  @IsOptional()
+  GOOGLE_CLIENT_ID?: string;
+  @IsString()
+  @IsOptional()
+  GOOGLE_CLIENT_SECRET?: string;
+  @IsString()
+  @IsOptional()
+  GOOGLE_CALLBACK_URL?: string;
+  @IsString()
+  @IsOptional()
+  WEB_URL?: string;
+  @IsString()
+  @IsOptional()
+  MSG91_OTP_TEMPLATE_ID?: string;
+  @IsString()
+  @IsOptional()
+  MSG91_OTP_VARIABLE?: string;
+
   @IsIn(['development', 'production', 'test'])
   @IsOptional()
   NODE_ENV: string = 'development';
@@ -38,17 +57,8 @@ class EnvironmentVariables {
   @IsOptional()
   CORS_ORIGINS?: string;
 
-  @IsString()
-  @IsOptional()
-  FIREBASE_PROJECT_ID?: string;
 
-  @IsString()
-  @IsOptional()
-  FIREBASE_CLIENT_EMAIL?: string;
 
-  @IsString()
-  @IsOptional()
-  FIREBASE_PRIVATE_KEY?: string;
 
   @IsString()
   @IsOptional()
@@ -291,7 +301,6 @@ export function validateEnv(config: Record<string, unknown>) {
       ['DATABASE_URL', 'DATABASE_URL'],
       ['REDIS_URL', 'REDIS_URL'],
       ['CORS_ORIGINS', 'CORS_ORIGINS'],
-      ['FIREBASE_PROJECT_ID', 'FIREBASE_PROJECT_ID'],
       ['ZEGO_APP_ID', 'ZEGO_APP_ID'],
       ['ZEGO_SERVER_SECRET', 'ZEGO_SERVER_SECRET'],
       ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_ID'],
@@ -302,6 +311,10 @@ export function validateEnv(config: Record<string, unknown>) {
     const missing = required
       .filter(([key]) => !validated[key] || validated[key] === 'change-me-to-a-long-random-secret-min-32-chars')
       .map(([, label]) => label);
+    if (!validated.SMTP_HOST || !validated.EMAIL_FROM) missing.push('SMTP_HOST and EMAIL_FROM are required for authentication emails');
+    if (!!validated.GOOGLE_CLIENT_ID !== !!validated.GOOGLE_CLIENT_SECRET) missing.push('Google client ID and secret must be configured together');
+    if (validated.SMS_PROVIDER === 'console' || !validated.SMS_PROVIDER) missing.push('SMS_PROVIDER must be configured for production phone authentication');
+    if (validated.SMS_PROVIDER === 'msg91' && (!validated.MSG91_AUTH_KEY || !validated.MSG91_OTP_TEMPLATE_ID)) missing.push('MSG91_AUTH_KEY and MSG91_OTP_TEMPLATE_ID are required');
     if (validated.ENABLE_DEV_AUTH === 'true') {
       missing.push('ENABLE_DEV_AUTH must be false in production');
     }

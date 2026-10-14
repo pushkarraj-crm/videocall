@@ -1,6 +1,6 @@
 # Platform Setup Guide
 
-Production-ready social video platform monorepo integrating Next.js, NestJS, PostgreSQL, Prisma, Firebase Auth, Razorpay, and ZegoCloud.
+Production-ready social video platform monorepo integrating Next.js, NestJS, PostgreSQL, Prisma, native authentication, Razorpay, and ZegoCloud.
 
 ## Architecture
 
@@ -20,7 +20,7 @@ platform/
 
 Optional for full production integrations:
 
-- Firebase project (Auth)
+- Google OAuth client (Google login)
 - Razorpay account (payments)
 - ZegoCloud account (video calls)
 
@@ -32,7 +32,32 @@ npm run setup    # Postgres + deps + schema + seed
 npm run dev      # API + Web concurrently
 ```
 
-Open http://localhost:3000 and use **Dev Login** buttons (User / Host / Admin) — no Firebase required.
+Web development uses Turbopack to reduce compiler memory usage. The first visit
+to a route still compiles it; later visits reuse the compiled route. If you need
+the previous compiler for debugging, run `npm run dev:webpack -w @platform/web`
+with the API running separately. For deployment, use the production build rather
+than `npm run dev`; development login shortcuts are disabled in production.
+
+Auth request regression checks: from `apps/web`, run
+`npx tsx scripts/auth-refresh.test.ts`.
+
+For the extracted project in this workspace, the project directory is
+`~/Videocall/platform/platform` in WSL.
+
+Docker Desktop must be running with WSL integration enabled for your distribution.
+Setup automatically uses local PostgreSQL when it is accepting connections on
+port 5432. If PostgreSQL is installed directly in WSL instead, start it with
+`sudo service postgresql start`, configure the database in `apps/api/.env`, and run:
+
+```bash
+DATABASE_MODE=external npm run setup
+npm run dev
+```
+
+Setup preserves existing environment files and uses Prisma schema push for local
+development. Production migration deployment is a separate operation.
+
+Open http://localhost:3000 and use **Dev Login** buttons (User / Host / Admin) — local PostgreSQL authentication.
 
 ### Dev Accounts (seeded)
 
@@ -57,7 +82,6 @@ cp apps/api/.env.example apps/api/.env
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `JWT_SECRET` | Yes | Min 32 chars, platform JWT signing |
 | `ENABLE_DEV_AUTH` | Dev | `true` enables `/auth/dev-login` |
-| `FIREBASE_*` | Prod | Firebase Admin SDK credentials |
 | `RAZORPAY_*` | Prod | Payment gateway keys |
 | `ZEGO_*` | Prod | Video call tokens |
 
@@ -71,15 +95,14 @@ cp apps/web/.env.example apps/web/.env.local
 |----------|----------|-------------|
 | `NEXT_PUBLIC_API_URL` | Yes | `http://localhost:3001/v1` |
 | `NEXT_PUBLIC_ENABLE_DEV_AUTH` | Dev | `true` shows dev login buttons |
-| `NEXT_PUBLIC_FIREBASE_*` | Prod | Firebase client SDK |
 | `NEXT_PUBLIC_ZEGO_APP_ID` | Prod | ZegoCloud app ID |
 
 ## Integration Flows
 
 ### Authentication
 
-1. **Production:** Firebase ID token → `POST /v1/auth/verify-token` → platform JWT
-2. **Development:** `POST /v1/auth/dev-login` → platform JWT (no Firebase)
+1. **Email/password:** `POST /v1/auth/register` or `/auth/login` → platform JWT
+2. **Google and phone:** native OAuth and provider-delivered OTP → platform JWT
 3. JWT stored in `localStorage` + `platform_token` cookie
 4. Onboarding: `POST /v1/auth/complete-onboarding` (consents + profile + optional referral)
 
@@ -145,7 +168,7 @@ cd apps/web && npm run start
 
 - [ ] Set `ENABLE_DEV_AUTH=false` on API
 - [ ] Set `NEXT_PUBLIC_ENABLE_DEV_AUTH=false` on web
-- [ ] Configure Firebase Admin + client credentials
+- [ ] Configure Google OAuth, MSG91 SMS Flow, and SMTP (see docs/NATIVE_AUTH.md)
 - [ ] Configure Razorpay live keys + webhook URL
 - [ ] Configure ZegoCloud app ID + server secret
 - [ ] Use strong `JWT_SECRET` (32+ chars)
@@ -163,7 +186,6 @@ curl http://localhost:3001/v1/health
 
 | Issue | Fix |
 |-------|-----|
-| `Firebase is not configured` | Use dev login, or add Firebase credentials |
 | `Razorpay is not configured` | Add keys or use dev user with seed coins |
 | No hosts on home | Login as Host dev account, toggle availability |
 | Incoming calls not showing | Host must be online; poll runs every 3s |
@@ -175,8 +197,13 @@ All endpoints are prefixed with `/v1`. Example:
 
 ```
 GET  /v1/health
-POST /v1/auth/verify-token
+POST /v1/auth/login
+POST /v1/auth/register
+POST /v1/auth/phone/request
+POST /v1/auth/phone/verify
 GET  /v1/payments/packages
 POST /v1/calls/initiate
 GET  /v1/calls/incoming
 ```
+
+Authentication configuration and migration: [Native auth guide](docs/NATIVE_AUTH.md).

@@ -600,8 +600,8 @@ enum RiskQueueStatus {
 
 model User {
   id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  firebaseUid       String     @unique @map("firebase_uid") @db.VarChar(128)
-  phone             String?    @db.VarChar(15)
+  authIdentity       String     @unique @map("firebase_uid") @db.VarChar(128)
+  phone             String?    @db.VarChar(16)
   email             String?    @db.VarChar(255)
   displayName       String     @map("display_name") @db.VarChar(50)
   avatarUrl         String?    @map("avatar_url")
@@ -633,6 +633,10 @@ model User {
   wallet                   Wallet?
   walletTransactions       WalletTransaction[]
   refreshTokens            RefreshToken[]
+  credential               AuthCredential?
+  recoveryTokens           AuthRecoveryToken[]
+  googleIdentity           AuthGoogleIdentity?
+  phoneIdentity            AuthPhoneIdentity?
   referralsMade            Referral[]            @relation("Referrer")
   referralReceived         Referral?             @relation("Referred")
   hostApplication          HostApplication?
@@ -779,6 +783,67 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+// Password credentials are separate from profile data so API profile serializers
+// can never accidentally return password hashes. Email is normalized before storage.
+model AuthCredential {
+  userId          String    @id @map("user_id") @db.Uuid
+  email           String    @unique @db.VarChar(255)
+  passwordHash    String    @map("password_hash") @db.VarChar(255)
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  failedAttempts  Int       @default(0) @map("failed_attempts")
+  lockedUntil     DateTime? @map("locked_until") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_credentials")
+}
+
+model AuthRecoveryToken {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  email      String    @db.VarChar(255)
+  purpose    String    @db.VarChar(20)
+  intent     String?   @db.VarChar(10)
+  tokenHash  String    @unique @map("token_hash") @db.VarChar(64)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt     DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@map("auth_recovery_tokens")
+}
+
+model AuthGoogleIdentity {
+  subject String @id @db.VarChar(255)
+  userId  String @unique @map("user_id") @db.Uuid
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("auth_google_identities")
+}
+
+model AuthPhoneIdentity {
+  phone  String @id @db.VarChar(16)
+  userId String @unique @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("auth_phone_identities")
+}
+
+model AuthOtpChallenge {
+  id        String    @id @db.Uuid
+  phone     String    @db.VarChar(16)
+  codeHash  String    @map("code_hash") @db.VarChar(64)
+  intent    String    @db.VarChar(10)
+  attempts  Int       @default(0)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@index([phone, createdAt])
+  @@index([expiresAt])
+  @@map("auth_otp_challenges")
 }
 
 // =============================================================================

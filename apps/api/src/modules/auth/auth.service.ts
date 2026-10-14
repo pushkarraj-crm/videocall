@@ -6,7 +6,6 @@ import { createHash, randomBytes } from 'crypto';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { generateReferralCode } from '../../common/utils/referral-code.util';
 import { PrismaService } from '../../database/prisma.service';
-import { FirebaseService } from '../../integrations/firebase/firebase.service';
 import { ReferralsService } from '../referrals/referrals.service';
 import { UsersService } from '../users/users.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -20,7 +19,6 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private readonly firebase: FirebaseService,
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
@@ -29,61 +27,21 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-  async verifyFirebaseToken(idToken: string) {
-    const decoded = await this.firebase.verifyIdToken(idToken);
-
-    let user = await this.usersService.findByFirebaseUid(decoded.uid);
-    const isNewUser = !user;
-
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          firebaseUid: decoded.uid,
-          phone: decoded.phone_number ?? null,
-          email: decoded.email ?? null,
-          displayName: decoded.name ?? decoded.email?.split('@')[0] ?? 'User',
-          dateOfBirth: new Date('2000-01-01'),
-          referralCode: generateReferralCode(),
-        },
-      });
-
-      await this.usersService.assignRole(user.id, Role.user);
-      await this.walletService.ensureWallet(user.id);
-      await this.grantSignupBonus(user.id);
+  async createUserSession(user: User, intent?: string, isNewUser = false) {
+    if (user.deletedAt || user.status !== UserStatus.active) {
+      throw new BusinessException('Account access denied', 403, 'ACCOUNT_BLOCKED');
     }
-
-    if (user.status === UserStatus.suspended) {
-      throw new BusinessException(
-        'Your account has been suspended. Please contact support.',
-        403,
-        'ACCOUNT_SUSPENDED',
-      );
-    }
-    if (user.status === UserStatus.banned) {
-      throw new BusinessException('Account access denied', 403, 'ACCOUNT_BANNED');
-    }
-
     const roles = await this.usersService.getUserRoles(user.id);
+    if (intent === 'admin' && !roles.some((role) =>
+      ['admin', 'super_admin', 'moderator', 'grievance_officer', 'support'].includes(role))) {
+      throw new BusinessException('This account does not have admin access.', 403, 'ADMIN_ACCESS_REQUIRED');
+    }
     const tokens = await this.issueTokenPair(user, roles);
-    const needsOnboarding = await this.userNeedsOnboarding(user.id);
-
-    this.logger.log(
-      `Firebase verify userId=${user.id} isNew=${isNewUser} roles=${roles.join(',')} needsOnboarding=${needsOnboarding}`,
-    );
-
-    return {
-      ...tokens,
-      user: {
-        id: user.id,
-        displayName: user.displayName,
-        status: user.status,
-        roles,
-        needsOnboarding,
-      },
-      isNewUser,
-    };
+    return { ...tokens, user: {
+      id: user.id, displayName: user.displayName, status: user.status, roles,
+      needsOnboarding: await this.userNeedsOnboarding(user.id),
+    }, isNewUser };
   }
-
   async refreshSession(refreshToken: string) {
     const tokenHash = createHash('sha256').update(refreshToken).digest('hex');
     const stored = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
@@ -97,10 +55,11 @@ export class AuthService {
       throw new BusinessException('Account access denied', 403, 'ACCOUNT_BLOCKED');
     }
 
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
+    const claimed = await this.prisma.refreshToken.updateMany({
+      where: { id: stored.id, revokedAt: null, expiresAt: { gt: new Date() } },
       data: { revokedAt: new Date() },
     });
+    if (claimed.count !== 1) throw new BusinessException('Session expired — please sign in again', 401, 'INVALID_REFRESH_TOKEN');
 
     const roles = await this.usersService.getUserRoles(user.id);
     const tokens = await this.issueTokenPair(user, roles);
@@ -198,17 +157,17 @@ export class AuthService {
     const defaults = roleDefaults[role];
     const phone = dto.phone ?? defaults.phone;
     const displayName = dto.displayName ?? defaults.displayName;
-    const firebaseUid = `dev_${phone.replace(/\D/g, '')}`;
+    const authIdentity = `dev_${phone.replace(/\D/g, '')}`;
     const completeOnboarding = dto.completeOnboarding ?? true;
     const seedCoins = dto.seedCoins ?? defaults.seedCoins;
 
-    let user = await this.usersService.findByFirebaseUid(firebaseUid);
+    let user = await this.usersService.findByAuthIdentity(authIdentity);
     const isNewUser = !user;
 
     if (!user) {
       user = await this.prisma.user.create({
         data: {
-          firebaseUid,
+          authIdentity,
           phone,
           displayName,
           dateOfBirth: new Date('1995-06-15'),
@@ -270,8 +229,9 @@ export class AuthService {
   private async issueTokenPair(user: User, roles: Role[]) {
     const payload: JwtPayload = {
       sub: user.id,
-      firebaseUid: user.firebaseUid,
+      authIdentity: user.authIdentity,
       roles: roles.map(String),
+      sessionIssuedAt: Date.now(),
     };
 
     const accessToken = await this.jwt.signAsync(payload);
@@ -296,7 +256,7 @@ export class AuthService {
     };
   }
 
-  private async grantSignupBonus(userId: string) {
+  async grantSignupBonus(userId: string) {
     const bonusCoins = this.config.get<number>('SIGNUP_BONUS_COINS', 100);
     if (bonusCoins <= 0) return;
 
@@ -398,7 +358,7 @@ export class AuthService {
 
     return {
       id: user.id,
-      firebaseUid: user.firebaseUid,
+      authIdentity: user.authIdentity,
       phone: user.phone,
       email: user.email,
       displayName: user.displayName,

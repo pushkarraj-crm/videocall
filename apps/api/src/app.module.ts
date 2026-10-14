@@ -9,7 +9,6 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './database/prisma.module';
-import { FirebaseModule } from './integrations/firebase/firebase.module';
 import { RedisModule } from './integrations/redis/redis.module';
 import { RedisService } from './integrations/redis/redis.service';
 import { RedisThrottlerStorage } from './integrations/redis/redis-throttler-storage';
@@ -54,7 +53,13 @@ import { WalletModule } from './modules/wallet/wallet.module';
           process.env.NODE_ENV !== 'production'
             ? { target: 'pino-pretty', options: { singleLine: true } }
             : undefined,
-        redact: ['req.headers.authorization', 'req.headers.cookie'],
+        redact: ['req.headers.authorization', 'req.headers.cookie', 'req.body.password', 'req.body.token', 'req.body.code', 'res.headers.set-cookie'],
+        serializers: {
+          req: (request: { id?: string; method?: string; url?: string; headers?: Record<string, unknown> }) => ({
+            id: request.id, method: request.method,
+            url: request.url?.split('?')[0], headers: request.headers,
+          }),
+        },
         customProps: (req) => ({
           requestId: (req as { requestId?: string }).requestId,
         }),
@@ -79,7 +84,6 @@ import { WalletModule } from './modules/wallet/wallet.module';
     StorageModule,
     AiHostAssetsModule,
     PrismaModule,
-    FirebaseModule,
     AuthModule,
     UsersModule,
     ProfilesModule,

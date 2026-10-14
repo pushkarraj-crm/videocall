@@ -30,9 +30,9 @@ export class UsersService {
     });
   }
 
-  findByFirebaseUid(firebaseUid: string) {
+  findByAuthIdentity(authIdentity: string) {
     return this.prisma.user.findFirst({
-      where: { firebaseUid, deletedAt: null },
+      where: { authIdentity, deletedAt: null },
     });
   }
 

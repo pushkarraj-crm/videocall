@@ -17,9 +17,9 @@ export interface LegalPolicyDefault {
   content: string;
 }
 
-const brand = 'Lovinexa';
-const supportEmail = 'support@lovinexa.com';
-const grievanceEmail = 'grievance@lovinexa.com';
+const brand = 'Lovenexa';
+const supportEmail = 'support@lovenexa.com';
+const grievanceEmail = 'grievance@lovenexa.com';
 
 export const LEGAL_POLICY_DEFAULTS: LegalPolicyDefault[] = [
   {

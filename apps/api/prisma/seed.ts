@@ -15,13 +15,13 @@ async function ensureDevUser(params: {
   role: 'user' | 'host' | 'admin';
   seedCoins?: number;
 }) {
-  const firebaseUid = `dev_${params.phone.replace(/\D/g, '')}`;
-  let user = await prisma.user.findFirst({ where: { firebaseUid } });
+  const authIdentity = `dev_${params.phone.replace(/\D/g, '')}`;
+  let user = await prisma.user.findFirst({ where: { authIdentity } });
 
   if (!user) {
     user = await prisma.user.create({
       data: {
-        firebaseUid,
+        authIdentity,
         phone: params.phone,
         displayName: params.displayName,
         dateOfBirth: new Date('1995-06-15'),
@@ -114,15 +114,15 @@ async function ensureVirtualHost(params: {
   priority: number;
   popularity: number;
 }) {
-  const firebaseUid = `dev_vh_${params.phone.replace(/\D/g, '')}`;
+  const authIdentity = `dev_vh_${params.phone.replace(/\D/g, '')}`;
   let user =
-    (await prisma.user.findFirst({ where: { firebaseUid } })) ??
+    (await prisma.user.findFirst({ where: { authIdentity } })) ??
     (await prisma.user.findFirst({ where: { phone: params.phone } }));
 
   if (!user) {
     user = await prisma.user.create({
       data: {
-        firebaseUid,
+        authIdentity,
         phone: params.phone,
         displayName: params.displayName,
         bio: params.bio,

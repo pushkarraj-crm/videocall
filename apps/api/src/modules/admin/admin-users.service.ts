@@ -503,7 +503,7 @@ export class AdminUsersService {
           displayName: 'Deleted User',
           avatarUrl: null,
           bio: null,
-          firebaseUid: `deleted_${userId.replace(/-/g, '')}`,
+          authIdentity: `deleted_${userId.replace(/-/g, '')}`,
         },
       });
     });

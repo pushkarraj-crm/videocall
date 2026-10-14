@@ -36,7 +36,7 @@ export class RiskRulesService {
         id: true,
         email: true,
         phone: true,
-        firebaseUid: true,
+        authIdentity: true,
         deviceFingerprint: true,
         createdAt: true,
         riskProfile: true,
@@ -156,10 +156,10 @@ export class RiskRulesService {
       where: { id: referralId },
       include: {
         referrer: {
-          select: { id: true, phone: true, email: true, firebaseUid: true, deviceFingerprint: true },
+          select: { id: true, phone: true, email: true, authIdentity: true, deviceFingerprint: true },
         },
         referred: {
-          select: { id: true, phone: true, email: true, firebaseUid: true, deviceFingerprint: true },
+          select: { id: true, phone: true, email: true, authIdentity: true, deviceFingerprint: true },
         },
       },
     });

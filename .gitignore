@@ -12,3 +12,4 @@ tsconfig.build.tsbuildinfo
 coverage/
 .turbo/
 uploads/
+.local/

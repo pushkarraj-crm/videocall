@@ -4,13 +4,53 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> Starting PostgreSQL..."
-docker compose up -d
-
-echo "==> Waiting for database..."
-until docker compose exec -T postgres pg_isready -U postgres -d platform >/dev/null 2>&1; do
-  sleep 1
+for file in apps/api/package.json apps/web/package.json apps/api/.env.example apps/web/.env.example; do
+  if [ ! -f "$file" ]; then
+    echo "Missing $file — this checkout is incomplete. Restore the project files first."
+    exit 1
+  fi
 done
+
+# Use an existing PostgreSQL server when Docker Desktop is unavailable.
+DATABASE_MODE="${DATABASE_MODE:-auto}"
+if [ "$DATABASE_MODE" = auto ]; then
+  if command -v pg_isready >/dev/null 2>&1 && pg_isready -h localhost -p 5432 >/dev/null 2>&1; then
+    DATABASE_MODE=external
+  else
+    DATABASE_MODE=docker
+  fi
+fi
+case "$DATABASE_MODE" in
+  docker)
+    if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+      echo "Docker is unavailable. Start Docker Desktop and enable WSL integration."
+      echo "For an existing PostgreSQL server, use: DATABASE_MODE=external npm run setup"
+      exit 1
+    fi
+    echo "==> Starting PostgreSQL..."
+    docker compose up -d postgres
+    echo "==> Waiting for database (up to 60 seconds)..."
+    ready=false
+    for attempt in {1..60}; do
+      if docker compose exec -T postgres pg_isready -U postgres -d platform >/dev/null 2>&1; then
+        ready=true
+        break
+      fi
+      sleep 1
+    done
+    if [ "$ready" != true ]; then
+      echo "PostgreSQL did not become ready. Check: docker compose logs postgres"
+      exit 1
+    fi
+    ;;
+  external)
+    echo "==> Using existing PostgreSQL server from apps/api/.env"
+    ;;
+  *)
+    echo "Invalid DATABASE_MODE: $DATABASE_MODE (use auto, docker or external)"
+    exit 1
+    ;;
+esac
 
 echo "==> Creating environment files..."
 if [ ! -f apps/api/.env ]; then
@@ -34,8 +74,8 @@ npm run db:constraints -w @platform/api
 echo "==> Seeding database..."
 npm run db:seed -w @platform/api
 
-echo "==> Syncing migration history for existing databases..."
-bash scripts/db-baseline.sh
+# Development uses db push above. Do not mark historical migrations as applied:
+# the current schema does not prove that their SQL/data changes were executed.
 
 echo ""
 echo "Setup complete."

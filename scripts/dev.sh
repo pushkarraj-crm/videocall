@@ -13,9 +13,8 @@ if [ ! -f apps/web/.env.local ]; then
   cp apps/web/.env.example apps/web/.env.local
 fi
 
-bash scripts/kill-ports.sh
-
 npx concurrently \
+  --kill-others-on-fail \
   --names api,web \
   --prefix-colors blue,green \
   "npm run dev:api" \

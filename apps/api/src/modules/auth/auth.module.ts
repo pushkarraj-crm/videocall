@@ -12,6 +12,12 @@ import { WalletModule } from '../wallet/wallet.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { NativeAuthService } from './native-auth.service';
+import { AuthMailService } from './auth-mail.service';
+import { GoogleAuthController } from './google-auth.controller';
+import { TwilioSmsProvider } from '../communications/providers/sms/twilio-sms.provider';
+import { Msg91SmsProvider } from '../communications/providers/sms/msg91-sms.provider';
+import { TextlocalSmsProvider } from '../communications/providers/sms/textlocal-sms.provider';
 
 @Module({
   imports: [
@@ -30,9 +36,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     WalletModule,
     forwardRef(() => ReferralsModule),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, GoogleAuthController],
   providers: [
     AuthService,
+    NativeAuthService, AuthMailService, TwilioSmsProvider, Msg91SmsProvider, TextlocalSmsProvider,
     JwtStrategy,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: AccountStatusGuard },

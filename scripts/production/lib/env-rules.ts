@@ -16,7 +16,6 @@ export const PRODUCTION_REQUIRED: EnvRule[] = [
   { key: 'JWT_SECRET', required: true, minLength: 32, forbiddenValues: ['change-me-to-a-long-random-secret-min-32-chars', 'change-me-to-a-long-random-secret-min-64-chars'] },
   { key: 'CORS_ORIGINS', required: true, pattern: /^https:\/\// },
   { key: 'ENABLE_DEV_AUTH', required: true, forbiddenValues: ['true'] },
-  { key: 'FIREBASE_PROJECT_ID', required: true, minLength: 1 },
   { key: 'ZEGO_APP_ID', required: true, minLength: 1 },
   { key: 'ZEGO_SERVER_SECRET', required: true, minLength: 32 },
   { key: 'RAZORPAY_KEY_ID', required: true, minLength: 1 },

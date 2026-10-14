@@ -4,7 +4,7 @@ type UserFingerprint = {
   id: string;
   phone: string | null;
   email: string | null;
-  firebaseUid: string;
+  authIdentity: string;
   deviceFingerprint: string | null;
 };
 

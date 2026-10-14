@@ -1,5 +1,5 @@
 /** Configured app title; empty string when unset. */
-export const APP_TITLE = (process.env.APP_TITLE ?? process.env.NEXT_PUBLIC_APP_TITLE ?? '').trim();
+export const APP_TITLE = (process.env.APP_TITLE ?? process.env.NEXT_PUBLIC_APP_TITLE ?? '').trim() || 'Lovenexa';
 
 export function appTitleOr(fallback = ''): string {
   return APP_TITLE || fallback;

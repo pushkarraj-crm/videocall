@@ -85,7 +85,7 @@ async function main() {
 
   const report = {
     generatedAt: new Date().toISOString(),
-    platform: 'Lovinexa',
+    platform: 'Lovenexa',
     scores: {
       security: securityScore,
       performance: performanceScore,
@@ -139,7 +139,7 @@ async function main() {
     },
     knownIssues: FINDINGS.filter((f) => f.status !== 'fixed').map((f) => `${f.id}: ${f.title} (${f.status})`),
     launchRecommendation: launchReady
-      ? 'GO — Lovinexa meets production release criteria'
+      ? 'GO — Lovenexa meets production release criteria'
       : 'NO-GO — resolve open critical items and verification failures',
     launchReady,
     loadTest: load,
@@ -148,7 +148,7 @@ async function main() {
   console.log(JSON.stringify(report, null, 2));
 
   if (launchReady) {
-    console.log('\n🚀 LOVINEXA IS READY FOR PRODUCTION RELEASE\n');
+    console.log('\n🚀 LOVENEXA IS READY FOR PRODUCTION RELEASE\n');
   }
 }
 

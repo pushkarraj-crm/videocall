@@ -550,7 +550,7 @@ export class VirtualHostsService {
     const baseSlug = this.assets.generateAssetSlug(dto.hostName ?? dto.displayName);
     const assetSlug = this.assets.ensureUniqueSlug(baseSlug, taken);
 
-    const firebaseUid = `virtual_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
+    const authIdentity = `virtual_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
     const enabled = dto.virtualHostEnabled !== false;
     const status: VirtualHostStatus =
       dto.virtualHostStatus ?? (enabled ? 'ONLINE' : 'OFFLINE');
@@ -565,7 +565,7 @@ export class VirtualHostsService {
     const user = await this.prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
         data: {
-          firebaseUid,
+          authIdentity,
           displayName: dto.displayName,
           avatarUrl: dto.avatarUrl ?? null,
           bio: dto.bio ?? null,
