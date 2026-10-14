@@ -1,0 +1,59 @@
+{
+  "hosts": {
+    "anchal": {
+      "outfits": {
+        "casual": {
+          "scenes": {
+            "bedroom": [
+              {
+                "path": "/ai-hosts/anchal/casual/bedroom/idle_01.mp4",
+                "url": "/ai-hosts/anchal/casual/bedroom/idle_01.mp4",
+                "host": "anchal",
+                "outfit": "casual",
+                "scene": "bedroom",
+                "type": "idle",
+                "file": "idle_01.mp4",
+                "weight": 1
+              },
+              {
+                "path": "/ai-hosts/anchal/casual/bedroom/idle_02.mp4",
+                "url": "/ai-hosts/anchal/casual/bedroom/idle_02.mp4",
+                "host": "anchal",
+                "outfit": "casual",
+                "scene": "bedroom",
+                "type": "idle",
+                "file": "idle_02.mp4",
+                "weight": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    "jyoti-singh": {
+      "outfits": {
+        "casual": {
+          "scenes": {
+            "bedroom": [
+              {
+                "path": "/ai-hosts/jyoti-singh/casual/bedroom/idle_01.mp4",
+                "url": "/ai-hosts/jyoti-singh/casual/bedroom/idle_01.mp4",
+                "host": "jyoti-singh",
+                "outfit": "casual",
+                "scene": "bedroom",
+                "type": "idle",
+                "file": "idle_01.mp4",
+                "weight": 1
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "scenes": {}
+        }
+      }
+    }
+  },
+  "scannedAt": "2026-06-30T17:44:26.634Z",
+  "totalClips": 3
+}
